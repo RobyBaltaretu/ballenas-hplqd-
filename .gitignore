@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.log
+*.sqlite3
+*.db
+.env
+registro/
+*.lock
+*.lock.info

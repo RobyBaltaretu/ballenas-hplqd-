@@ -1,0 +1,17 @@
+[Unit]
+Description=Departamento de investigación del bot (prueba ideas nuevas; nunca opera ni activa nada)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=botballenas
+WorkingDirectory=/opt/bot-ballenas
+ExecStart=/opt/bot-ballenas/.venv/bin/python -u investigacion.py --ideas 60 --minutos 90 --presupuesto 300
+# Que nunca le quite recursos al bot
+Nice=15
+CPUQuota=80%
+MemoryMax=1500M
+TimeoutStartSec=3h
+NoNewPrivileges=true
+PrivateTmp=true

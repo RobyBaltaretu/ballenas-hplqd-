@@ -1,0 +1,4 @@
+# Versiones fijadas (las verificadas en el equipo donde corre el bot). Actualizar a mano y volver a pasar las pruebas.
+hyperliquid-python-sdk==0.24.0
+python-dotenv==1.2.4
+requests==2.34.2

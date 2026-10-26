@@ -1,0 +1,9 @@
+[Unit]
+Description=Recordatorio mensual: entrar en la consola de Oracle (evita que la cuenta se considere abandonada)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=botballenas
+WorkingDirectory=/opt/bot-ballenas
+ExecStart=/opt/bot-ballenas/.venv/bin/python despliegue/avisos.py "🗓️ Recordatorio mensual: entra en la consola de Oracle Cloud (cloud.oracle.com) y echa un vistazo a la máquina del bot. Oracle puede suspender cuentas sin actividad durante 30 días."

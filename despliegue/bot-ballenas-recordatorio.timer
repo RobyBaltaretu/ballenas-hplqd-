@@ -1,0 +1,9 @@
+[Unit]
+Description=Recordatorio mensual de Oracle (día 1, 08:00 UTC)
+
+[Timer]
+OnCalendar=*-*-01 08:00:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

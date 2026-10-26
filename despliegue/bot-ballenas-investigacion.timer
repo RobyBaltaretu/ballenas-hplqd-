@@ -1,0 +1,10 @@
+[Unit]
+Description=Ronda de investigación (cada noche 00:30 UTC, salvo el domingo que va el laboratorio)
+
+[Timer]
+OnCalendar=Mon..Sat *-*-* 00:30:00 UTC
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

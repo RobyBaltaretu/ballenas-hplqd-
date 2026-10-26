@@ -1,0 +1,1878 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bot de ballenas</title>
+<meta name="panel-token" content="{{TOKEN}}">
+<meta name="panel-solo-lectura" content="{{SOLO_LECTURA}}">
+<style>
+:root {
+  --fondo: #0a1114; --fondo-2: #0d171b; --sup: #111d22; --sup-2: #15242a; --sup-3: #1a2c33;
+  --borde: #1f3139; --borde-2: #29404a;
+  --texto: #e7f1f0; --suave: #8ea4aa; --tenue: #5f767c;
+  --acento: #5eead4; --acento-2: #2dd4bf; --acento-f: rgba(94, 234, 212, .12);
+  --verde: #2fd788; --verde-f: rgba(47, 215, 136, .12);
+  --rojo: #f0627d; --rojo-f: rgba(240, 98, 125, .13);
+  --ambar: #f3bd55; --ambar-f: rgba(243, 189, 85, .13);
+  --azul: #6aa9ff; --azul-f: rgba(106, 169, 255, .13);
+  --violeta: #b49cff;
+  --radio: 12px; --radio-p: 8px;
+  --sombra: 0 10px 40px rgba(0, 0, 0, .45);
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--fondo); color: var(--texto); }
+body { font: 14px/1.45 Inter, "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; -webkit-font-smoothing: antialiased;
+       background: radial-gradient(1200px 500px at 85% -120px, rgba(45, 212, 191, .10), transparent 60%), var(--fondo);
+       min-height: 100vh; }
+a { color: var(--acento); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.num, td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.num { white-space: nowrap; }
+.mono { font-family: var(--mono); font-size: 12.5px; }
+.pos { color: var(--verde); } .neg { color: var(--rojo); } .suave { color: var(--suave); } .tenue { color: var(--tenue); }
+.ambar-t { color: var(--ambar); } .acento-t { color: var(--acento); }
+button, .boton { font: inherit; color: var(--texto); background: var(--sup-2); border: 1px solid var(--borde-2);
+  border-radius: var(--radio-p); padding: 7px 12px; cursor: pointer; transition: background .15s, border-color .15s; white-space: nowrap; }
+button:hover:not(:disabled) { background: var(--sup-3); border-color: #36525d; }
+button:disabled { opacity: .4; cursor: not-allowed; }
+button.primario { background: var(--acento); color: #042521; border-color: var(--acento); font-weight: 650; }
+button.primario:hover:not(:disabled) { background: #7cf2df; }
+button.peligro { color: var(--rojo); border-color: rgba(240, 98, 125, .45); background: var(--rojo-f); }
+button.fantasma { background: transparent; border-color: transparent; color: var(--suave); }
+button.fantasma:hover:not(:disabled) { background: var(--sup-2); color: var(--texto); }
+button.mini { padding: 3px 8px; font-size: 12px; }
+input, select { font: inherit; color: var(--texto); background: var(--fondo-2); border: 1px solid var(--borde-2);
+  border-radius: var(--radio-p); padding: 7px 10px; min-width: 0; }
+input:focus, select:focus, button:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
+input[type="checkbox"] { accent-color: var(--acento); }
+
+/* ------------------------------------------------ cabecera */
+.cab { position: sticky; top: 0; z-index: 20; background: rgba(10, 17, 20, .86); backdrop-filter: blur(12px);
+       border-bottom: 1px solid var(--borde); }
+.cab-in { max-width: 1440px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; gap: 14px; }
+.marca { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .2px; font-size: 15px; }
+.marca svg { width: 26px; height: 26px; }
+.pildora { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px;
+  font-weight: 600; border: 1px solid var(--borde-2); background: var(--sup); white-space: nowrap; }
+.pildora .p { width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px rgba(255,255,255,.04); }
+.pildora.verde { color: var(--verde); border-color: rgba(47,215,136,.35); background: var(--verde-f); }
+.pildora.rojo { color: var(--rojo); border-color: rgba(240,98,125,.35); background: var(--rojo-f); }
+.pildora.ambar { color: var(--ambar); border-color: rgba(243,189,85,.35); background: var(--ambar-f); }
+.pildora.azul { color: var(--azul); border-color: rgba(106,169,255,.35); background: var(--azul-f); }
+.pildora.acento { color: var(--acento); border-color: rgba(94,234,212,.35); background: var(--acento-f); }
+.pildora.violeta { color: var(--violeta); border-color: rgba(180,156,255,.35); background: rgba(180,156,255,.12); }
+.pildora.vivo .p { animation: latir 2s infinite; }
+@keyframes latir { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+.cab .der { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.cab .hora { font-size: 12px; color: var(--suave); }
+nav.tabs { max-width: 1440px; margin: 0 auto; padding: 0 20px; display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+nav.tabs::-webkit-scrollbar { display: none; }
+nav.tabs a { position: relative; padding: 10px 12px 11px; color: var(--suave); font-weight: 550; white-space: nowrap; text-decoration: none; }
+nav.tabs a:hover { color: var(--texto); }
+nav.tabs a.activa { color: var(--texto); }
+nav.tabs a.activa::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--acento); }
+.cuenta { font-size: 10.5px; font-weight: 700; min-width: 17px; height: 17px; padding: 0 5px; border-radius: 999px; display: inline-grid;
+  place-items: center; margin-left: 4px; background: var(--rojo); color: #fff; }
+.cuenta.azul { background: var(--azul); }
+
+/* ------------------------------------------------ estructura */
+main { max-width: 1440px; margin: 0 auto; padding: 18px 20px 80px; }
+.banda { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 9px 14px; border-radius: var(--radio);
+  margin-bottom: 14px; border: 1px solid var(--borde); background: var(--sup); font-size: 13px; }
+.banda.simulado { border-color: rgba(106,169,255,.3); background: linear-gradient(90deg, var(--azul-f), transparent 70%); }
+.banda.shadow { border-color: rgba(180,156,255,.3); background: linear-gradient(90deg, rgba(180,156,255,.12), transparent 70%); }
+.banda.real { border-color: rgba(240,98,125,.45); background: linear-gradient(90deg, var(--rojo-f), transparent 70%); }
+.banda b { letter-spacing: .3px; }
+.aviso { display: none; margin-bottom: 14px; padding: 10px 14px; border-radius: var(--radio); background: var(--sup-2);
+  border: 1px solid var(--borde-2); }
+section.pestana { display: none; animation: aparecer .2s ease; }
+section.pestana.activa { display: block; }
+@keyframes aparecer { from { opacity: 0; transform: translateY(4px) } to { opacity: 1; transform: none } }
+.rej { display: grid; gap: 14px; }
+.rej.k4 { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.rej.d2 { grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); }
+.rej.d3 { grid-template-columns: 2fr 1fr; }
+.esp { margin-top: 14px; }
+.tarj { background: var(--sup); border: 1px solid var(--borde); border-radius: var(--radio); padding: 16px; min-width: 0; }
+.tarj.plana { padding: 0; overflow: hidden; }
+.tarj-cab { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.tarj.plana .tarj-cab { padding: 14px 16px 0; }
+.tarj h2 { font-size: 14px; margin: 0; font-weight: 650; letter-spacing: .1px; }
+.tarj h3 { font-size: 12px; margin: 16px 0 8px; color: var(--suave); text-transform: uppercase; letter-spacing: .6px; font-weight: 650; }
+.tarj-cab .der { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.nota { color: var(--suave); font-size: 12.5px; margin: 10px 0 0; }
+.vacio { color: var(--tenue); padding: 18px 4px; text-align: center; font-size: 13px; }
+
+/* ------------------------------------------------ KPIs */
+.kpi { background: var(--sup); border: 1px solid var(--borde); border-radius: var(--radio); padding: 14px 16px; min-width: 0; }
+.kpi .e { color: var(--suave); font-size: 12px; display: flex; align-items: center; gap: 4px; }
+.kpi .v { font-size: 22px; font-weight: 650; margin-top: 4px; font-variant-numeric: tabular-nums; letter-spacing: -.3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi .s { color: var(--tenue); font-size: 12px; margin-top: 2px; }
+.medidor { height: 6px; background: var(--fondo-2); border-radius: 99px; margin-top: 10px; overflow: hidden; position: relative; }
+.medidor i { display: block; height: 100%; border-radius: 99px; background: var(--acento); transition: width .4s; }
+.medidor.ambar i { background: var(--ambar); } .medidor.rojo i { background: var(--rojo); } .medidor.verde i { background: var(--verde); }
+.heroe { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; gap: 0; padding: 0; overflow: hidden; }
+.heroe .izq { padding: 20px; border-right: 1px solid var(--borde); }
+.heroe .valor { font-size: 34px; font-weight: 700; letter-spacing: -.8px; font-variant-numeric: tabular-nums; margin: 4px 0 10px; }
+.heroe .linea { display: flex; gap: 8px; flex-wrap: wrap; }
+.heroe .der { padding: 12px 8px 4px; min-width: 0; }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600;
+  background: var(--sup-2); color: var(--suave); white-space: nowrap; }
+.chip.verde { background: var(--verde-f); color: var(--verde); } .chip.rojo { background: var(--rojo-f); color: var(--rojo); }
+.chip.ambar { background: var(--ambar-f); color: var(--ambar); } .chip.azul { background: var(--azul-f); color: var(--azul); }
+.chip.acento { background: var(--acento-f); color: var(--acento); } .chip.violeta { background: rgba(180,156,255,.12); color: var(--violeta); }
+.periodos { display: flex; gap: 2px; background: var(--fondo-2); border-radius: var(--radio-p); padding: 2px; border: 1px solid var(--borde); }
+.periodos button { border: 0; background: transparent; padding: 4px 9px; font-size: 12px; color: var(--suave); }
+.periodos button.act { background: var(--sup-3); color: var(--texto); }
+
+/* ------------------------------------------------ tablas */
+.tabla { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; color: var(--tenue); font-weight: 550; font-size: 11.5px; text-transform: uppercase; letter-spacing: .5px;
+  padding: 8px 12px; border-bottom: 1px solid var(--borde); white-space: nowrap; position: sticky; top: 0; background: var(--sup); }
+td { padding: 9px 12px; border-bottom: 1px solid rgba(31, 49, 57, .6); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+tbody tr { transition: background .12s; }
+tbody tr:hover { background: rgba(255, 255, 255, .025); }
+tr.clic { cursor: pointer; }
+td .sub { color: var(--tenue); font-size: 11.5px; }
+.lado { display: inline-flex; align-items: center; gap: 6px; font-weight: 650; }
+.lado::before { content: ""; width: 3px; height: 16px; border-radius: 2px; background: currentColor; }
+.lado.L { color: var(--verde); } .lado.S { color: var(--rojo); }
+.moneda { color: var(--texto); font-weight: 650; }
+.tabla.alta { max-height: 640px; overflow: auto; }
+.pag { display: flex; align-items: center; gap: 10px; justify-content: flex-end; padding: 10px 16px; border-top: 1px solid var(--borde); }
+
+/* escalera de R: stop - entrada - objetivo */
+.escalera { position: relative; height: 22px; min-width: 150px; }
+.escalera .pista { position: absolute; top: 9px; left: 0; right: 0; height: 4px; border-radius: 4px;
+  background: linear-gradient(90deg, rgba(240,98,125,.55), rgba(240,98,125,.15) 40%, rgba(47,215,136,.15) 60%, rgba(47,215,136,.55)); }
+.escalera .marca { position: absolute; top: 4px; width: 2px; height: 14px; background: var(--suave); border-radius: 2px; }
+.escalera .actual { position: absolute; top: 3px; width: 10px; height: 10px; margin-left: -5px; margin-top: 3px; border-radius: 50%;
+  background: var(--texto); box-shadow: 0 0 0 3px rgba(231,241,240,.18); }
+
+/* ------------------------------------------------ listas, alertas */
+.lista { list-style: none; margin: 0; padding: 0; }
+.lista li { padding: 9px 2px; border-bottom: 1px solid rgba(31,49,57,.6); display: flex; gap: 10px; align-items: flex-start; }
+.lista li:last-child { border-bottom: 0; }
+.punto { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex: none; background: var(--suave); }
+.punto.error { background: var(--rojo); } .punto.aviso { background: var(--ambar); } .punto.info { background: var(--azul); }
+.punto.verde { background: var(--verde); }
+.ev-mini { display: grid; grid-template-columns: 62px 1fr; gap: 8px; padding: 8px 2px; border-bottom: 1px solid rgba(31,49,57,.6); cursor: pointer; }
+.ev-mini:hover { background: rgba(255,255,255,.02); }
+.ev-mini:last-child { border-bottom: 0; }
+
+/* ------------------------------------------------ tarjetas de estrategia */
+.estr { cursor: pointer; transition: border-color .15s, transform .15s; display: flex; flex-direction: column; gap: 10px; }
+.estr:hover { border-color: var(--borde-2); transform: translateY(-1px); }
+.estr .cab-e { display: flex; align-items: center; gap: 8px; }
+.estr .nom { font-weight: 700; font-size: 15px; }
+.estr .mets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.estr .mets > div { background: var(--fondo-2); border-radius: var(--radio-p); padding: 8px 10px; }
+.estr .mets .e { font-size: 11px; color: var(--tenue); } .estr .mets .v { font-weight: 650; font-variant-numeric: tabular-nums; }
+.progreso { display: flex; flex-direction: column; gap: 6px; }
+.progreso .fila-p { display: grid; grid-template-columns: 70px 1fr 70px; gap: 8px; align-items: center; font-size: 12px; color: var(--suave); }
+
+/* ------------------------------------------------ gráficos */
+svg.graf { width: 100%; height: auto; display: block; }
+svg.graf text { fill: var(--tenue); font-size: 11px; font-family: inherit; }
+.barras-h { display: flex; flex-direction: column; gap: 6px; }
+.barras-h .b { display: grid; grid-template-columns: 90px 1fr 80px; gap: 10px; align-items: center; font-size: 12.5px; }
+.barras-h .pista { position: relative; height: 14px; background: var(--fondo-2); border-radius: 4px; }
+.barras-h .pista i { position: absolute; top: 0; bottom: 0; border-radius: 4px; }
+.barras-h .pista .cero { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--borde-2); }
+
+/* ------------------------------------------------ cajón de detalle */
+.velo { position: fixed; inset: 0; background: rgba(0, 0, 0, .55); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 40; }
+.cajon { position: fixed; top: 0; right: 0; bottom: 0; width: min(760px, 100%); background: var(--fondo-2); border-left: 1px solid var(--borde);
+  transform: translateX(100%); transition: transform .25s ease; z-index: 41; overflow-y: auto; box-shadow: var(--sombra); }
+body.cajon-abierto .velo { opacity: 1; pointer-events: auto; }
+body.cajon-abierto .cajon { transform: none; }
+.cajon-cab { position: sticky; top: 0; background: rgba(13, 23, 27, .95); backdrop-filter: blur(8px); padding: 14px 20px;
+  border-bottom: 1px solid var(--borde); display: flex; align-items: center; gap: 10px; z-index: 2; }
+.cajon-cab h2 { margin: 0; font-size: 16px; }
+.cajon-cuerpo { padding: 16px 20px 40px; }
+.dl { display: grid; grid-template-columns: minmax(130px, 38%) 1fr; gap: 0; margin: 0; }
+.dl dt { color: var(--suave); padding: 7px 0; border-bottom: 1px solid rgba(31,49,57,.6); font-size: 13px; }
+.dl dd { margin: 0; padding: 7px 0; border-bottom: 1px solid rgba(31,49,57,.6); font-variant-numeric: tabular-nums; min-width: 0; overflow-wrap: anywhere; }
+.tl { list-style: none; padding: 0; margin: 0; border-left: 2px solid var(--borde); }
+.tl li { position: relative; padding: 6px 0 6px 14px; cursor: pointer; font-size: 13px; }
+.tl li::before { content: ""; position: absolute; left: -5px; top: 12px; width: 8px; height: 8px; border-radius: 50%; background: var(--borde-2); }
+.tl li pre { display: none; white-space: pre-wrap; word-break: break-word; font-family: var(--mono); font-size: 11.5px;
+  background: var(--sup); padding: 8px; border-radius: var(--radio-p); margin: 6px 0 0; color: var(--suave); }
+.tl li.abierto pre { display: block; }
+.mini-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.mini-kpis > div { background: var(--sup); border: 1px solid var(--borde); border-radius: var(--radio-p); padding: 9px 11px; min-width: 0; }
+.mini-kpis .e { font-size: 11px; color: var(--tenue); } .mini-kpis .v { font-weight: 650; font-size: 15px; font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------ feed */
+.filtros { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.filtros input, .filtros select { flex: 1 1 130px; }
+.filtros .crece { flex: 3 1 200px; }
+tr.ev-nuevo td:first-child { box-shadow: inset 2px 0 0 var(--acento); }
+tr.obsoleto { opacity: .5; }
+.velas { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.cuenta-atras { font-family: var(--mono); font-size: 22px; font-weight: 650; }
+
+/* ------------------------------------------------ observabilidad */
+.comps { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+.comp { background: var(--fondo-2); border: 1px solid var(--borde); border-radius: var(--radio-p); padding: 10px 12px; }
+.comp .nom { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; font-size: 13px; }
+.comp .det { color: var(--tenue); font-size: 12px; margin-top: 3px; }
+.est { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 5px; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; }
+.est.correcto { background: var(--verde-f); color: var(--verde); } .est.degradado, .est.desactualizado { background: var(--ambar-f); color: var(--ambar); }
+.est.fallido { background: var(--rojo-f); color: var(--rojo); }
+.est.sin_datos, .est.desconocido, .est.desactivado { background: var(--sup-2); color: var(--suave); }
+.logs { font-family: var(--mono); font-size: 12px; max-height: 520px; overflow: auto; background: var(--fondo-2); border-radius: var(--radio-p);
+  border: 1px solid var(--borde); }
+.log { display: grid; grid-template-columns: 130px 64px 110px 1fr; gap: 8px; padding: 5px 10px; border-bottom: 1px solid rgba(31,49,57,.5); }
+.log .nv.ERROR { color: var(--rojo); } .log .nv.WARNING { color: var(--ambar); } .log .nv.INFO { color: var(--azul); }
+.log pre { grid-column: 1 / -1; display: none; white-space: pre-wrap; margin: 4px 0 0; color: var(--suave); }
+.log.abierto pre { display: block; } .log.detalle { cursor: pointer; }
+
+/* ------------------------------------------------ configuración */
+.cfg-nav { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.cfg-nav button.act { background: var(--acento-f); border-color: rgba(94,234,212,.4); color: var(--acento); }
+.campos { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; }
+.campo { background: var(--fondo-2); border: 1px solid var(--borde); border-radius: var(--radio-p); padding: 12px; display: flex;
+  flex-direction: column; gap: 8px; transition: border-color .15s; }
+.campo.cambiado { border-color: rgba(94,234,212,.55); box-shadow: 0 0 0 1px rgba(94,234,212,.15) inset; }
+.campo.ancho { grid-column: 1 / -1; }
+.campo .et { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; }
+.campo .ay { color: var(--tenue); font-size: 12px; }
+.campo .ctrl { display: flex; align-items: center; gap: 8px; }
+.campo .ctrl input[type="number"] { width: 140px; font-variant-numeric: tabular-nums; }
+.campo .unidad { color: var(--suave); font-size: 12px; }
+.campo .antes { color: var(--tenue); font-size: 11.5px; margin-left: auto; }
+.interruptor { position: relative; width: 40px; height: 22px; flex: none; }
+.interruptor input { opacity: 0; width: 0; height: 0; }
+.interruptor span { position: absolute; inset: 0; border-radius: 99px; background: var(--sup-3); border: 1px solid var(--borde-2); cursor: pointer; transition: .15s; }
+.interruptor span::after { content: ""; position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--suave); transition: .15s; }
+.interruptor input:checked + span { background: var(--acento-f); border-color: var(--acento); }
+.interruptor input:checked + span::after { left: 21px; background: var(--acento); }
+.interruptor input:disabled + span { opacity: .5; cursor: not-allowed; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chips .chip { background: var(--sup-3); color: var(--texto); padding: 3px 4px 3px 9px; }
+.chips .chip button { padding: 0 6px; border: 0; background: transparent; color: var(--suave); font-size: 14px; line-height: 1; }
+.chips .chip button:hover { color: var(--rojo); }
+.barra-cambios { position: fixed; left: 50%; bottom: 18px; transform: translate(-50%, 140%); transition: transform .25s; z-index: 30;
+  background: var(--sup-2); border: 1px solid rgba(94,234,212,.5); border-radius: 14px; padding: 10px 12px 10px 18px; display: flex;
+  gap: 12px; align-items: center; box-shadow: var(--sombra); max-width: calc(100% - 32px); }
+.barra-cambios { visibility: hidden; }
+.barra-cambios.visible { transform: translate(-50%, 0); visibility: visible; }
+dialog { border: 1px solid var(--borde-2); border-radius: 14px; background: var(--sup); color: var(--texto); max-width: min(620px, calc(100% - 32px));
+  padding: 20px; box-shadow: var(--sombra); }
+dialog::backdrop { background: rgba(0, 0, 0, .6); }
+dialog h2 { margin: 0 0 10px; font-size: 17px; }
+.dif { list-style: none; padding: 0; margin: 10px 0; max-height: 50vh; overflow: auto; }
+.dif li { padding: 8px 10px; border-radius: var(--radio-p); background: var(--fondo-2); margin-bottom: 6px; font-size: 13px; }
+.dif li.riesgo { border: 1px solid rgba(243,189,85,.45); }
+.dif .flecha { color: var(--tenue); margin: 0 6px; }
+
+/* ------------------------------------------------ ayuda ⓘ */
+button.info { border: 0; background: transparent; color: var(--tenue); padding: 0 2px; font-size: 13px; line-height: 1; }
+button.info:hover { color: var(--acento); background: transparent; }
+.ayuda { position: fixed; z-index: 60; max-width: 340px; background: var(--sup-3); border: 1px solid var(--borde-2); border-radius: var(--radio);
+  padding: 12px 14px; box-shadow: var(--sombra); font-size: 13px; }
+.ayuda h4 { margin: 0 0 6px; font-size: 13px; } .ayuda p { margin: 0; color: var(--suave); }
+.ayuda .cerrar { float: right; padding: 0 6px; border: 0; background: transparent; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+details.glos summary { cursor: pointer; color: var(--suave); }
+.glosario dt { font-weight: 600; margin-top: 10px; } .glosario dd { margin: 2px 0 0; color: var(--suave); }
+
+@media (max-width: 980px) {
+  .heroe { grid-template-columns: 1fr; } .heroe .izq { border-right: 0; border-bottom: 1px solid var(--borde); }
+  .rej.d3 { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .cab-in { padding: 10px 14px; flex-wrap: wrap; } nav.tabs { padding: 0 8px; } main { padding: 14px 14px 90px; }
+  .rej.d2 { grid-template-columns: 1fr; } .rej.k4 { grid-template-columns: 1fr 1fr; }
+  .kpi .v { font-size: 18px; } .heroe .valor { font-size: 28px; }
+  .cab .hora { display: none; } .cab .der { width: 100%; justify-content: flex-start; overflow-x: auto; }
+  .campos { grid-template-columns: 1fr; } .log { grid-template-columns: 1fr; gap: 0; }
+  .estr .mets { grid-template-columns: 1fr 1fr 1fr; }
+}
+/* ------------------------------------------------ vista sencilla (portada estilo app) */
+body.sencillo nav.tabs, body.sencillo #banda, body.sencillo #b-pausa, body.sencillo #b-reanudar,
+body.sencillo #b-cerrar, body.sencillo #modo-pill { display: none !important; }
+body.sencillo section.pestana { display: none !important; }
+body.sencillo section#p-inicio { display: block !important; }
+#p-inicio { max-width: 560px; margin: 0 auto; padding: 8px 0 60px; }
+.in-saldo { text-align: center; padding: 28px 0 10px; }
+.in-etq { color: var(--suave); font-size: 13px; letter-spacing: .3px; }
+.in-cifra { font-size: 46px; font-weight: 700; letter-spacing: -1px; line-height: 1.1; margin: 6px 0 8px;
+  font-variant-numeric: tabular-nums; }
+.in-cifra small { font-size: 24px; color: var(--suave); font-weight: 600; }
+.in-cambio { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; font-size: 14px; padding: 4px 12px;
+  border-radius: 999px; background: var(--sup); }
+.in-cambio.pos { background: var(--verde-f); } .in-cambio.neg { background: var(--rojo-f); }
+.in-ficticio { margin-top: 10px; font-size: 12px; color: var(--azul); }
+.in-graf { margin: 14px 0 4px; height: 150px; position: relative; }
+.in-graf svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.in-rangos { display: flex; justify-content: center; gap: 6px; margin-bottom: 18px; }
+.in-rangos button { border-radius: 999px; padding: 5px 14px; font-size: 12.5px; background: transparent; border-color: transparent; color: var(--suave); }
+.in-rangos button.activo { background: var(--sup-2); color: var(--texto); border-color: var(--borde-2); }
+.in-acciones { display: flex; justify-content: center; gap: 26px; margin: 4px 0 22px; }
+.in-accion { display: flex; flex-direction: column; align-items: center; gap: 7px; background: none; border: 0; padding: 0;
+  color: var(--texto); font-size: 12.5px; cursor: pointer; }
+.in-accion:hover:not(:disabled) { background: none; }
+.in-accion .ic { width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; background: var(--sup-2);
+  border: 1px solid var(--borde-2); font-size: 20px; transition: background .15s; }
+.in-accion:hover:not(:disabled) .ic { background: var(--sup-3); }
+.in-accion.peligro { background: none; border: 0; color: var(--rojo); }
+.in-accion.peligro .ic { color: var(--rojo); background: var(--rojo-f); border-color: rgba(240, 98, 125, .35); }
+.in-tarjeta { background: var(--sup); border: 1px solid var(--borde); border-radius: 18px; padding: 16px 18px; margin-bottom: 14px; }
+.in-tit { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 10px; font-size: 15px; font-weight: 650; }
+.in-tit .suave { font-weight: 400; font-size: 12.5px; }
+.in-estado { display: flex; gap: 12px; align-items: flex-start; }
+.in-luz { width: 12px; height: 12px; border-radius: 50%; margin-top: 5px; flex: none; box-shadow: 0 0 0 4px rgba(255,255,255,.05); }
+.in-luz.verde { background: var(--verde); box-shadow: 0 0 0 4px var(--verde-f); }
+.in-luz.ambar { background: var(--ambar); box-shadow: 0 0 0 4px var(--ambar-f); }
+.in-luz.rojo { background: var(--rojo); box-shadow: 0 0 0 4px var(--rojo-f); }
+.in-frase { font-size: 15px; line-height: 1.45; }
+.in-frase .suave { font-size: 13px; display: block; margin-top: 3px; }
+.in-fila { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-top: 1px solid var(--borde); }
+.in-fila:first-of-type { border-top: 0; }
+.in-avatar { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 12px;
+  background: var(--sup-3); flex: none; letter-spacing: -.3px; }
+.in-avatar.sube { background: var(--verde-f); color: var(--verde); } .in-avatar.baja { background: var(--rojo-f); color: var(--rojo); }
+.in-medio { flex: 1; min-width: 0; }
+.in-medio b { font-weight: 600; display: block; }
+.in-medio .suave { font-size: 12.5px; display: block; line-height: 1.4; margin-top: 2px; }
+.in-der { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.in-der .suave { display: block; font-weight: 400; font-size: 12px; }
+.in-barra { height: 6px; border-radius: 99px; background: var(--sup-3); overflow: hidden; margin: 8px 0 4px; }
+.in-barra i { display: block; height: 100%; border-radius: 99px; background: var(--acento); }
+.in-pasos { list-style: none; margin: 10px 0 0; padding: 0; }
+.in-pasos li { display: flex; gap: 10px; padding: 6px 0; font-size: 13.5px; align-items: flex-start; }
+.in-pasos .ck { width: 20px; height: 20px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 11px;
+  border: 1.5px solid var(--borde-2); color: var(--tenue); }
+.in-pasos li.ok .ck { background: var(--verde); border-color: var(--verde); color: #04261a; }
+.in-pasos li.ok { color: var(--suave); }
+.in-vacio { color: var(--suave); font-size: 13.5px; padding: 6px 0; }
+.in-pie { text-align: center; margin-top: 18px; }
+@media (max-width: 600px) { #p-inicio { padding: 0 2px 50px; } .in-cifra { font-size: 38px; } .in-acciones { gap: 18px; } }
+body:not(.sencillo) #p-inicio { display: none !important; }
+</style>
+</head>
+<body>
+<header class="cab">
+  <div class="cab-in">
+    <div class="marca">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" x2="1" y1="0" y2="1">
+        <stop offset="0" stop-color="#5eead4"/><stop offset="1" stop-color="#2b8f86"/></linearGradient></defs>
+        <rect x="1" y="1" width="30" height="30" rx="9" fill="#0f2a2c" stroke="url(#lg)" stroke-width="1.5"/>
+        <path d="M7 19c3-5 6-5 9 0s6 5 9 0" fill="none" stroke="url(#lg)" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M7 13c3-4 6-4 9 0s6 4 9 0" fill="none" stroke="#5eead4" stroke-opacity=".45" stroke-width="1.6" stroke-linecap="round"/></svg>
+      Bot de ballenas
+    </div>
+    <span id="estado" class="pildora">—</span>
+    <span id="modo-pill" class="pildora azul" style="display:none"></span>
+    <div class="der">
+      <span id="actualizado" class="hora"></span>
+      <button id="b-modo" class="fantasma" onclick="ponerModo(!document.body.classList.contains('sencillo'))">Modo experto</button>
+      <button id="b-pausa" onclick="comando('/pausa')" title="El bot deja de abrir operaciones nuevas; las abiertas se siguen gestionando">Pausar entradas</button>
+      <button id="b-reanudar" onclick="comando('/reanudar')">Reanudar</button>
+      <button id="b-cerrar" class="peligro" onclick="pedirCierre()">Cerrar posiciones…</button>
+    </div>
+  </div>
+  <nav class="tabs" id="nav" aria-label="Secciones">
+    <a href="#resumen" data-p="resumen">Resumen <span id="badge-alertas" class="cuenta" style="display:none"></span></a>
+    <a href="#vivo" data-p="vivo">Señales en vivo <span id="badge-vivo" class="cuenta azul" style="display:none"></span></a>
+    <a href="#operaciones" data-p="operaciones">Operaciones</a>
+    <a href="#estrategias" data-p="estrategias">Estrategias</a>
+    <a href="#ballenas" data-p="ballenas">Ballenas</a>
+    <a href="#aprendizaje" data-p="aprendizaje">Aprendizaje</a>
+    <a href="#investigacion" data-p="investigacion">Investigación</a>
+    <a href="#observabilidad" data-p="observabilidad">Sistema <span id="badge-inc" class="cuenta" style="display:none"></span></a>
+    <a href="#configuracion" data-p="configuracion">Configuración</a>
+  </nav>
+</header>
+
+<main>
+  <div id="banda" class="banda simulado" role="status">—</div>
+  <div id="aviso" class="aviso" role="alert"></div>
+
+  <!-- ============================== INICIO (vista sencilla) -->
+  <section class="pestana" id="p-inicio" aria-label="Inicio">
+    <div class="in-saldo">
+      <div class="in-etq" id="in-etq">Valor de la cuenta</div>
+      <div class="in-cifra" id="in-cifra">—</div>
+      <span class="in-cambio" id="in-cambio">—</span>
+      <div class="in-ficticio" id="in-ficticio"></div>
+    </div>
+    <div class="in-graf" id="in-graf"></div>
+    <div class="in-rangos" id="in-rangos">
+      <button data-h="24">Hoy</button><button data-h="168" class="activo">Semana</button>
+      <button data-h="720">Mes</button><button data-h="0">Todo</button>
+    </div>
+    <div class="in-acciones">
+      <button class="in-accion" id="in-pausa" onclick="comando('/pausa')"><span class="ic">⏸</span>Pausar</button>
+      <button class="in-accion" id="in-reanudar" onclick="comando('/reanudar')"><span class="ic">▶</span>Reanudar</button>
+      <button class="in-accion peligro" id="in-cerrar" onclick="pedirCierre()"><span class="ic">✕</span>Cerrar todo</button>
+      <button class="in-accion" onclick="ponerModo(false)"><span class="ic">☰</span>Detalles</button>
+    </div>
+
+    <div class="in-tarjeta">
+      <div class="in-estado"><span class="in-luz" id="in-luz"></span><div class="in-frase" id="in-frase">—</div></div>
+    </div>
+
+    <div class="in-tarjeta">
+      <div class="in-tit">Operaciones abiertas <span class="suave" id="in-n-abiertas"></span></div>
+      <div id="in-abiertas"></div>
+    </div>
+
+    <div class="in-tarjeta">
+      <div class="in-tit">Actividad reciente <span class="suave" id="in-resumen-act"></span></div>
+      <div id="in-actividad"><div class="in-vacio">Cargando…</div></div>
+    </div>
+
+    <div class="in-tarjeta">
+      <div class="in-tit">Camino a dinero real <span class="suave" id="in-camino-n"></span></div>
+      <div class="in-barra"><i id="in-camino-barra" style="width:0"></i></div>
+      <ul class="in-pasos" id="in-camino"></ul>
+    </div>
+    <div class="in-pie"><button class="fantasma" onclick="ponerModo(false)">Ver todos los detalles (modo experto) →</button></div>
+  </section>
+
+  <!-- ============================== RESUMEN -->
+  <section class="pestana" id="p-resumen">
+    <div class="tarj heroe">
+      <div class="izq">
+        <div class="suave" style="font-size:12.5px">Valor de la cuenta <button class="info" data-g="equity" aria-label="Ayuda: valor de la cuenta">ⓘ</button></div>
+        <div class="valor" id="h-valor">—</div>
+        <div class="linea" id="h-cambios"></div>
+        <div class="mini-kpis esp" id="h-mini"></div>
+      </div>
+      <div class="der">
+        <div class="tarj-cab" style="padding:4px 12px 0;margin:0">
+          <span class="suave" style="font-size:12.5px">Evolución</span>
+          <div class="der"><div class="periodos" id="g-periodos">
+            <button data-h="24">24 h</button><button data-h="168" class="act">7 d</button><button data-h="720">30 d</button><button data-h="0">Todo</button></div></div>
+        </div>
+        <div id="g-saldo"></div>
+      </div>
+    </div>
+    <div class="rej k4 esp" id="kpis"></div>
+    <div class="rej d3 esp">
+      <div class="tarj plana">
+        <div class="tarj-cab"><h2>Posiciones del bot</h2><button class="info" data-g="stop_mark" aria-label="Ayuda: stops y precio de marca">ⓘ</button>
+          <div class="der"><span class="suave" id="pos-total" style="font-size:12.5px"></span></div></div>
+        <div class="tabla" id="posiciones"></div>
+      </div>
+      <div class="tarj">
+        <div class="tarj-cab"><h2>Entradas</h2><button class="info" data-g="bloqueos" aria-label="Ayuda: entradas bloqueadas">ⓘ</button></div>
+        <div id="bloqueos"></div>
+        <h3>Próximas velas</h3><div id="r-velas"></div>
+      </div>
+    </div>
+    <div class="rej d2 esp">
+      <div class="tarj">
+        <div class="tarj-cab"><h2>Últimos movimientos</h2><div class="der"><a href="#vivo">Ver todo ›</a></div></div>
+        <div id="r-feed"></div>
+      </div>
+      <div class="tarj">
+        <div class="tarj-cab"><h2>Alertas</h2></div>
+        <div id="alertas"></div>
+      </div>
+    </div>
+    <div class="rej d2 esp">
+      <div class="tarj plana">
+        <div class="tarj-cab"><h2>Límites de riesgo</h2><button class="info" data-g="limite_diario" aria-label="Ayuda: límites">ⓘ</button></div>
+        <div class="tabla" id="limites" style="padding:0 4px 8px"></div>
+      </div>
+      <div class="tarj plana">
+        <div class="tarj-cab"><h2>Posiciones y órdenes externas</h2><button class="info" data-g="externa" aria-label="Ayuda: posición externa">ⓘ</button></div>
+        <div class="tabla" id="externas" style="padding:0 4px 8px"></div>
+      </div>
+    </div>
+    <div class="tarj plana esp" id="caja-shadow" style="display:none">
+      <div class="tarj-cab"><h2>Intenciones shadow abiertas</h2><button class="info" data-g="shadow" aria-label="Ayuda: shadow">ⓘ</button></div>
+      <div class="tabla" id="shadow"></div>
+    </div>
+  </section>
+
+  <!-- ============================== SEÑALES EN VIVO -->
+  <section class="pestana" id="p-vivo">
+    <div class="tarj">
+      <div class="tarj-cab">
+        <span id="v-conexion" class="pildora">Conectando…</span>
+        <span id="v-ultimo" class="suave" style="font-size:12.5px"></span>
+        <span id="v-bot" class="suave" style="font-size:12.5px"></span>
+        <span id="v-latencia" class="suave" style="font-size:12.5px"></span>
+        <div class="der"><button id="v-pausa" type="button">Pausar</button></div>
+      </div>
+      <div id="v-obsoleto" class="chip rojo" style="display:none;margin-bottom:8px;white-space:normal"></div>
+      <p class="nota" style="margin:0">Lo que el bot detecta, decide y hace, y lo que observa del mercado y de las ballenas, con su procedencia
+        y frescura. <b>No son predicciones.</b> Lo marcado como <span class="chip ambar">inferido</span> no es un dato confirmado.
+        La latencia es la observada; no hay una latencia garantizada. <button class="info" data-g="feed" aria-label="Ayuda: señales en vivo">ⓘ</button></p>
+    </div>
+    <div class="tarj esp"><div class="tarj-cab"><h2>Velas: las estrategias solo generan señal al cierre</h2></div><div id="v-velas" class="velas"></div></div>
+    <div class="tarj plana esp">
+      <div class="tarj-cab" style="padding-bottom:12px">
+        <div class="filtros" role="search" style="width:100%">
+          <select id="v-tipo" aria-label="Tipo de evento"><option value="">Todos los tipos</option></select>
+          <input type="search" id="v-moneda" placeholder="Moneda" aria-label="Moneda">
+          <input type="search" id="v-estrategia" placeholder="Estrategia" aria-label="Estrategia">
+          <select id="v-lado" aria-label="Lado"><option value="">Cualquier lado</option><option value="L">Largo</option><option value="S">Corto</option>
+            <option value="compra">Compra</option><option value="venta">Venta</option></select>
+          <input type="search" id="v-estado" placeholder="Estado" aria-label="Estado">
+          <input type="search" id="v-q" class="crece" placeholder="Buscar texto…" aria-label="Buscar">
+          <button id="v-limpiar" type="button">Limpiar</button>
+        </div>
+      </div>
+      <div class="tabla alta" id="v-eventos"></div>
+      <p class="nota" id="v-pie" style="padding:0 16px 12px"></p>
+    </div>
+    <div class="rej d2 esp">
+      <div class="tarj"><div class="tarj-cab"><h2>Cobertura de ballenas</h2></div><div id="v-cobertura"></div></div>
+      <div class="tarj"><div class="tarj-cab"><h2>Flujo agregado · última hora</h2><span class="chip ambar">inferido</span></div><div id="v-flujo"></div></div>
+    </div>
+  </section>
+
+  <!-- ============================== OPERACIONES -->
+  <section class="pestana" id="p-operaciones">
+    <div class="rej k4" id="ops-kpis"></div>
+    <div class="tarj plana esp">
+      <div class="tarj-cab" style="padding-bottom:12px">
+        <div class="filtros" style="width:100%">
+          <select id="f-estado" aria-label="Estado"><option value="">Todos los estados</option><option>cerrada</option><option>completada</option>
+            <option>parcial</option><option>enviada</option><option>cerrando</option><option>rechazada</option><option>aprobada</option>
+            <option>shadow</option><option>shadow_cerrada</option><option>error</option></select>
+          <select id="f-estrategia" aria-label="Estrategia"><option value="">Todas las estrategias</option></select>
+          <select id="f-moneda" aria-label="Moneda"><option value="">Todas las monedas</option></select>
+          <select id="f-lado" aria-label="Lado"><option value="">Largo y corto</option><option value="L">Largo</option><option value="S">Corto</option></select>
+          <select id="f-origen" aria-label="Origen"><option value="">Todo origen</option><option>real</option><option>simulado</option><option>shadow</option></select>
+          <label class="suave" style="display:flex;gap:6px;align-items:center;white-space:nowrap"><input type="checkbox" id="f-ejec" checked> solo ejecutadas</label>
+          <input type="search" id="f-q" class="crece" placeholder="Buscar (trade_id, motivo…)" aria-label="Buscar">
+          <a id="csv" href="#" class="boton" download>CSV</a>
+        </div>
+      </div>
+      <div class="tabla" id="ops"></div>
+      <div class="pag"><span id="pag-txt" class="suave" style="font-size:12.5px"></span><button id="pag-ant" class="mini">‹ Anterior</button><button id="pag-sig" class="mini">Siguiente ›</button></div>
+    </div>
+    <div class="rej d2 esp">
+      <div class="tarj"><div class="tarj-cab"><h2>Distribución de resultados (R neto)</h2><button class="info" data-g="r" aria-label="Ayuda: R">ⓘ</button></div><div id="ops-hist"></div></div>
+      <div class="tarj"><div class="tarj-cab"><h2>Resultado por estrategia</h2></div><div id="ops-estr"></div></div>
+    </div>
+    <p class="nota">Cada operación se reconstruye con el registro versionado (registro/ledger.jsonl): señal, decisión, órdenes, fills,
+      protección, funding y cierre. Pulsa una fila para ver su historia completa. <button class="info" data-g="pnl_neto" aria-label="Ayuda: resultado neto">ⓘ</button></p>
+  </section>
+
+  <!-- ============================== ESTRATEGIAS -->
+  <section class="pestana" id="p-estrategias">
+    <div class="tarj">
+      <div class="tarj-cab"><h2>Estrategias</h2><button class="info" data-g="etapa" aria-label="Ayuda: etapas">ⓘ</button>
+        <button class="info" data-g="huella" aria-label="Ayuda: huella">ⓘ</button>
+        <div class="der"><span class="suave" id="lab-meta" style="font-size:12.5px"></span></div></div>
+      <p class="nota" style="margin:0">Pulsa una estrategia para ver todo el laboratorio: fuera de muestra, holdout, comparación con el azar,
+        escenarios de costes, resultado por moneda, régimen y trimestre, y su evidencia en vivo. Nada de aquí activa el modo real.</p>
+    </div>
+    <div class="tarj esp" id="cerebro-est"></div>
+    <div class="rej d2 esp" id="estrategias" style="grid-template-columns:repeat(auto-fill,minmax(330px,1fr))"></div>
+    <div class="tarj esp"><div class="tarj-cab"><h2>Datos propios acumulados</h2></div><div id="datos-acum"></div></div>
+  </section>
+
+  <!-- ============================== BALLENAS -->
+  <section class="pestana" id="p-ballenas">
+    <div class="rej k4" id="b-kpis"></div>
+    <div class="tarj plana esp">
+      <div class="tarj-cab"><h2>Ballenas seguidas</h2><button class="info" data-g="ballena_etiqueta" aria-label="Ayuda: etiquetas de ballenas">ⓘ</button>
+        <div class="der"><span class="suave" style="font-size:12.5px">Direcciones enmascaradas · pulsa una fila para ver su detalle</span></div></div>
+      <div class="tabla" id="ballenas"></div>
+    </div>
+    <div class="rej d2 esp">
+      <div class="tarj"><div class="tarj-cab"><h2>Flujo neto de ballenas por moneda · 1 h</h2><span class="chip ambar">inferido</span></div><div id="b-flujo"></div></div>
+      <div class="tarj"><div class="tarj-cab"><h2>Exposición observada agregada</h2></div><div id="b-expo"></div>
+        <p class="nota">Suma de las posiciones observadas en la última foto de cada ballena. Un trade público no revela la exposición neta completa de una cuenta.</p></div>
+    </div>
+    <div class="tarj esp"><div class="tarj-cab"><h2>Binance y Bybit · mismo mercado en otros exchanges</h2><span class="chip">solo datos</span><span id="ext-fuentes"></span></div>
+      <div class="tabla" id="externo"></div>
+      <p class="nota">Datos públicos leídos cada 5 minutos. El bot <b>no opera</b> en Binance ni en Bybit y no usa cuentas ni claves allí. Hoy sirven para informe e investigación (el laboratorio mide si anticipan algo a partir de 14 días archivados); no cambian ninguna decisión. Funding pasado a % por hora para compararlo con Hyperliquid.</p></div>
+  </section>
+
+  <!-- ============================== APRENDIZAJE -->
+  <section class="pestana" id="p-aprendizaje">
+    <div class="rej k4" id="a-kpis"></div>
+    <div class="rej d2 esp">
+      <div class="tarj"><div class="tarj-cab"><h2>¿Aporta el filtro de aprendizaje?</h2><button class="info" data-g="filtro_aprendizaje" aria-label="Ayuda: evaluación del filtro">ⓘ</button></div>
+        <div id="a-filtro-eval"></div></div>
+      <div class="tarj"><div class="tarj-cab"><h2>Qué habría pasado con lo descartado</h2></div><div id="a-filtros"></div></div>
+    </div>
+    <div class="tarj plana esp"><div class="tarj-cab"><h2>Por estrategia y fuente</h2></div><div class="tabla" id="a-estrategias"></div></div>
+    <div class="tarj plana esp"><div class="tarj-cab"><h2>Descartes analizados</h2><div class="der"><span class="suave" style="font-size:12.5px">Señales rechazadas seguidas en papel · pulsa para ver el caso</span></div></div>
+      <div class="tabla" id="a-descartes"></div></div>
+    <p class="nota" id="a-nota"></p>
+  </section>
+
+  <!-- ============================== INVESTIGACIÓN -->
+  <section class="pestana" id="p-investigacion">
+    <div class="rej k4" id="i-kpis"></div>
+    <p class="nota">Cada noche el bot inventa y prueba ideas nuevas con todo el rigor del laboratorio. Cuantas más prueba, más exige (la t
+      requerida sube). Las pocas que pasan se siguen en vivo SIN operar. <button class="info" data-g="investigacion" aria-label="Ayuda: investigación">ⓘ</button></p>
+    <div class="tarj plana esp"><div class="tarj-cab"><h2>Aspirantes en observación</h2><span class="chip">en vivo, sin operar</span></div><div class="tabla" id="i-aspirantes"></div></div>
+    <div class="rej d2 esp">
+      <div class="tarj plana"><div class="tarj-cab"><h2>Vigilancia de estrategias</h2><button class="info" data-g="vigilancia" aria-label="Ayuda: vigilancia">ⓘ</button></div><div class="tabla" id="i-vigilancia"></div></div>
+      <div class="tarj plana"><div class="tarj-cab"><h2>Pendientes de tu revisión</h2></div><div class="tabla" id="i-revision"></div></div>
+    </div>
+    <div class="tarj plana esp"><div class="tarj-cab"><h2>Cementerio reciente</h2></div><div class="tabla" id="i-cementerio"></div></div>
+  </section>
+
+  <!-- ============================== SISTEMA (observabilidad) -->
+  <section class="pestana" id="p-observabilidad">
+    <div class="tarj-cab">
+      <span class="suave">Salud técnica del bot. Aquí no hay saldo, posiciones ni operaciones.</span>
+      <div class="der"><label class="suave" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="o-pausa"> pausar</label>
+        <a class="boton" href="/api/diagnostico">Exportar diagnóstico</a></div>
+    </div>
+    <div class="rej k4" id="o-kpis"></div>
+    <div class="tarj esp"><div class="tarj-cab"><h2>Componentes</h2><button class="info" data-g="estado_componente" aria-label="Ayuda: estados">ⓘ</button></div><div class="comps" id="o-comp"></div></div>
+    <div class="tarj plana esp"><div class="tarj-cab"><h2>Incidentes</h2><button class="info" data-g="incidente" aria-label="Ayuda: incidentes">ⓘ</button></div><div class="tabla" id="o-inc"></div></div>
+    <div class="tarj esp"><div class="tarj-cab"><h2>Registros técnicos</h2><button class="info" data-g="traza" aria-label="Ayuda: traza">ⓘ</button></div>
+      <div class="filtros" style="margin-bottom:10px">
+        <select id="o-nivel" aria-label="Nivel"><option value="">Todos los niveles</option><option>INFO</option><option>WARNING</option><option>ERROR</option></select>
+        <select id="o-comp-f" aria-label="Componente"><option value="">Todos los componentes</option></select>
+        <input type="search" id="o-traza" placeholder="Traza (ciclo-…)" aria-label="Traza">
+        <input type="search" id="o-q" class="crece" placeholder="Buscar texto" aria-label="Texto">
+      </div>
+      <div class="logs" id="o-logs"></div></div>
+  </section>
+
+  <!-- ============================== CONFIGURACIÓN -->
+  <section class="pestana" id="p-configuracion">
+    <div class="tarj">
+      <div class="tarj-cab"><h2>Configuración del bot</h2><span id="c-ro" class="chip ambar" style="display:none">solo lectura</span>
+        <div class="der"><button class="fantasma" onclick="verHistorial()">Historial de cambios</button></div></div>
+      <p class="nota" style="margin:0" id="c-aviso"></p>
+      <p class="nota">Desde aquí <b>no</b> se puede cambiar el modo (simulado, shadow, real), los límites del piloto real ni la seguridad del panel.
+        Cada guardado se valida, deja una copia de la configuración anterior y se puede deshacer.</p>
+    </div>
+    <div class="esp cfg-nav" id="c-nav"></div>
+    <div class="tarj" id="c-seccion"></div>
+    <div class="rej d2 esp">
+      <div class="tarj plana"><div class="tarj-cab"><h2>Valores de riesgo que se aplican de verdad</h2></div><div class="tabla" id="c-efectiva"></div></div>
+      <div class="tarj"><details class="glos"><summary><b>Glosario</b> · qué significa cada término</summary><dl class="glosario" id="glosario"></dl></details></div>
+    </div>
+  </section>
+</main>
+
+<div class="barra-cambios" id="barra-cambios" role="region" aria-label="Cambios sin guardar">
+  <span><b id="bc-n">0</b> cambios sin guardar</span>
+  <button class="fantasma" onclick="descartarCambios()">Descartar</button>
+  <button class="primario" onclick="revisarCambios()">Revisar y guardar</button>
+</div>
+
+<div class="velo" onclick="cerrarCajon()"></div>
+<aside class="cajon" id="cajon" role="dialog" aria-modal="true" aria-labelledby="cajon-titulo" tabindex="-1">
+  <div class="cajon-cab"><h2 id="cajon-titulo">Detalle</h2><span id="cajon-etq"></span>
+    <button class="fantasma" style="margin-left:auto" onclick="cerrarCajon()" aria-label="Cerrar detalle">✕</button></div>
+  <div class="cajon-cuerpo" id="cajon-cuerpo"></div>
+</aside>
+<div id="ayuda" class="ayuda" role="dialog" aria-modal="false" aria-labelledby="ayuda-t" hidden>
+  <button class="cerrar" onclick="cerrarAyuda()" aria-label="Cerrar ayuda">✕</button>
+  <h4 id="ayuda-t"></h4><p id="ayuda-p"></p>
+</div>
+<dialog id="d-cierre" aria-labelledby="d-cierre-t">
+  <h2 id="d-cierre-t">Cerrar SOLO las posiciones del bot</h2>
+  <p id="d-cierre-alcance"></p>
+  <p class="suave">Las posiciones externas no se tocan. El bot quedará en pausa. Escribe <b>CERRAR-BOT</b> para confirmar.</p>
+  <label class="sr" for="d-cierre-txt">Confirmación</label><input id="d-cierre-txt" autocomplete="off" style="width:100%">
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button onclick="document.getElementById('d-cierre').close()">Cancelar</button>
+    <button class="peligro" onclick="confirmarCierre()">Cerrar posiciones del bot</button></div>
+</dialog>
+<dialog id="d-config" aria-labelledby="d-config-t">
+  <h2 id="d-config-t">Revisar cambios</h2>
+  <div id="d-config-cuerpo"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button onclick="document.getElementById('d-config').close()">Volver</button>
+    <button class="primario" id="d-config-ok" onclick="guardarCambios()">Guardar y aplicar</button></div>
+</dialog>
+
+<script>
+"use strict";
+const TOKEN = document.querySelector('meta[name="panel-token"]').content;
+const SOLO_LECTURA = document.querySelector('meta[name="panel-solo-lectura"]').content === "1";
+let D = null, GLOSARIO = {}, pagina = 1, ultimoOk = 0, alcanceCierre = [], horasGrafico = 168;
+const $ = id => document.getElementById(id);
+function esc(v) { return String(v ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c])); }
+function n(v, d = 2) { return v == null || isNaN(v) ? "—" : Number(v).toLocaleString("es-ES", {minimumFractionDigits: d, maximumFractionDigits: d}); }
+function usd(v, d = 2) { return v == null || isNaN(v) ? "—" : n(v, d) + " $"; }
+function usdK(v) { if (v == null) return "—"; const a = Math.abs(v); const s = v > 0 ? "+" : v < 0 ? "−" : "";
+  return s + (a >= 1e6 ? n(a / 1e6, 2) + " M" : a >= 1e3 ? n(a / 1e3, 0) + " k" : n(a, 0)) + " $"; }
+function pct(v, d = 2) { return v == null || isNaN(v) ? "—" : (v > 0 ? "+" : "") + n(v, d) + " %"; }
+function rr(v, d = 2) { return v == null || isNaN(v) ? "—" : (v > 0 ? "+" : "") + n(v, d) + " R"; }
+function signo(v) { return v == null ? "" : v > 0 ? "pos" : v < 0 ? "neg" : ""; }
+function hora(ts) { if (!ts) return "—"; const t = typeof ts === "string" ? Date.parse(ts) : ts * 1000;
+  return new Date(t).toLocaleString("es-ES", {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"}); }
+function horaS(ts) { if (!ts) return "—"; return new Date(ts * 1000).toLocaleTimeString("es-ES"); }
+function hace(seg) { if (seg == null) return "—"; seg = Math.max(0, seg); return seg < 90 ? `${Math.round(seg)} s` : seg < 5400 ? `${Math.round(seg / 60)} min` : seg < 172800 ? `${(seg / 3600).toFixed(1)} h` : `${(seg / 86400).toFixed(1)} d`; }
+function dur(seg) { if (seg == null) return "—"; const h = seg / 3600; return h < 1 ? `${Math.round(seg / 60)} min` : h < 48 ? `${n(h, 1)} h` : `${n(h / 24, 1)} d`; }
+function lado(l) { return l === "L" ? '<span class="lado L">Largo</span>' : l === "S" ? '<span class="lado S">Corto</span>' : esc(l || ""); }
+function ladoTxt(l) { return l === "L" ? "Largo" : l === "S" ? "Corto" : (l || ""); }
+function info(clave) { return `<button class="info" data-g="${esc(clave)}" aria-label="Ayuda: ${esc((GLOSARIO[clave] || {}).titulo || clave)}">ⓘ</button>`; }
+function tabla(cab, filas, vacio = "Nada que mostrar.") {
+  if (!filas.length) return `<div class="vacio">${esc(vacio)}</div>`;
+  return `<table><thead><tr>${cab.map(c => `<th${c.endsWith("#") ? ' class="num"' : ""}>${esc(c.replace(/#$/, ""))}</th>`).join("")}</tr></thead>
+    <tbody>${filas.join("")}</tbody></table>`;
+}
+function td(v, cls = "") { return `<td class="${cls}">${v}</td>`; }
+function kpi(etq, valor, sub = "", ayuda = "", cls = "", medidor = null) {
+  let m = "";
+  if (medidor) { const p = Math.max(0, Math.min(100, medidor.pct || 0));
+    m = `<div class="medidor ${p >= 90 ? "rojo" : p >= 65 ? "ambar" : ""}" role="progressbar" aria-valuenow="${Math.round(p)}" aria-valuemax="100"><i style="width:${p}%"></i></div>`; }
+  return `<div class="kpi"><div class="e">${esc(etq)} ${ayuda ? info(ayuda) : ""}</div><div class="v ${cls}">${valor}</div>${sub ? `<div class="s">${sub}</div>` : ""}${m}</div>`;
+}
+function mini(etq, v, cls = "") { return `<div><div class="e">${esc(etq)}</div><div class="v ${cls}">${v}</div></div>`; }
+const desc = v => v == null || v === "" ? '<span class="tenue">desconocido</span>' : v;
+
+/* ---------------------------------------------------------------- ayuda contextual (ⓘ) */
+let ayudaOrigen = null;
+document.addEventListener("click", e => {
+  const b = e.target.closest("button.info");
+  if (b) { e.stopPropagation(); abrirAyuda(b); return; }
+  const a = $("ayuda");
+  if (!a.hidden && !a.contains(e.target)) cerrarAyuda();
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") { if (!$("ayuda").hidden) cerrarAyuda(); else cerrarCajon(); } });
+function abrirAyuda(b) {
+  const g = GLOSARIO[b.dataset.g] || EST_INFO[b.dataset.g] || {titulo: "Ayuda", texto: "Sin descripción."};
+  $("ayuda-t").textContent = g.titulo; $("ayuda-p").textContent = g.texto;
+  const a = $("ayuda"); a.hidden = false;
+  const r = b.getBoundingClientRect();
+  a.style.left = Math.max(12, Math.min(r.left, innerWidth - a.offsetWidth - 12)) + "px";
+  a.style.top = (r.bottom + 6 + a.offsetHeight > innerHeight ? Math.max(12, r.top - a.offsetHeight - 6) : r.bottom + 6) + "px";
+  ayudaOrigen = b; a.querySelector(".cerrar").focus();
+}
+const EST_INFO = {
+  "est_ruptura": {titulo: "Ruptura", texto: "Entra cuando una vela cierra por encima del máximo (o por debajo del mínimo) de las últimas 20-40 velas, a favor de la tendencia de fondo y con la volatilidad despertando. Stop a 1,5-2,5 ATR, cobro parcial a 1,5 R y objetivo final a 4 R con stop dinámico. Máximo 30 velas."},
+  "est_retroceso": {titulo: "Retroceso", texto: "En una tendencia limpia, espera a que el precio vuelva a su media rápida y entra cuando la vela siguiente cierra otra vez a favor. Stop a 1,2-2 ATR, cobro parcial a 1 R, objetivo a 3 R. Máximo 24 velas."},
+  "est_reversion": {titulo: "Reversión a la media", texto: "Solo sin tendencia: si el precio se aleja 1,5-2,5 ATR de su media y el RSI marca exceso, entra en contra cuando la vela gira. Objetivos cortos (0,8 R y 1,8 R). Máximo 10 velas."},
+  "est_funding": {titulo: "Funding extremo", texto: "Si el funding medio de las últimas horas está en su 5-10 % más extremo y el precio empieza a girar, se pone en contra de la mayoría. Stop a 1,5-2,5 ATR, objetivo 3 R, máximo 18 velas."},
+  "est_fuerza": {titulo: "Fuerza relativa", texto: "Cartera: cada pocos días ordena las monedas por su avance (medido en ATR); compra la más fuerte (o las dos) y vende la más débil hasta el siguiente reparto. Sin objetivo; stop amplio de 2,5-3,5 ATR."},
+  "est_momentum": {titulo: "Momentum", texto: "Mira cada moneda en ventanas de 10-30 días; si el movimiento es claro (3-6 ATR) y limpio, va a favor hasta el siguiente reparto (4-7 días). Stop de 3-5 ATR, sin objetivo. Solo velas de 4 h."},
+  "est_ballenas": {titulo: "Ballenas (investigación)", texto: "Detecta cuando cuentas grandes y rentables aumentan con fuerza su posición en una moneda (50.000 $ de aumento o 100.000 $ de flujo en una hora). Hoy solo registra lo que haría; puede usarse como veto."},
+  "est_liquidaciones": {titulo: "Liquidaciones (investigación)", texto: "Detecta cascadas de cierres forzosos (el interés abierto cae un 3 % en una hora con un movimiento de 2 ATR) y busca el rebote. Necesita 14 días de mercado grabado; hoy solo registra."},
+};
+function cerrarAyuda() { $("ayuda").hidden = true; if (ayudaOrigen) { ayudaOrigen.focus(); ayudaOrigen = null; } }
+
+/* ---------------------------------------------------------------- cajón de detalle */
+let foco = null;
+function abrirCajon(titulo, etq = "") {
+  foco = document.activeElement;
+  $("cajon-titulo").innerHTML = titulo; $("cajon-etq").innerHTML = etq;
+  $("cajon-cuerpo").innerHTML = '<div class="vacio">Cargando…</div>';
+  document.body.classList.add("cajon-abierto"); $("cajon").scrollTop = 0; $("cajon").focus();
+}
+function cuerpoCajon(html) { $("cajon-cuerpo").innerHTML = html; }
+function cerrarCajon() { if (!document.body.classList.contains("cajon-abierto")) return;
+  document.body.classList.remove("cajon-abierto"); if (foco) { foco.focus(); foco = null; } }
+const dl = pares => `<dl class="dl">${pares.filter(p => p && p[1] !== undefined).map(([k, v, g]) => `<dt>${esc(k)} ${g ? info(g) : ""}</dt><dd>${v}</dd>`).join("")}</dl>`;
+
+/* ---------------------------------------------------------------- navegación */
+function irA(p) {
+  if (!$("p-" + p)) p = "resumen";
+  cerrarCajon();
+  document.querySelectorAll("section.pestana").forEach(s => s.classList.toggle("activa", s.id === "p-" + p));
+  document.querySelectorAll("nav.tabs a").forEach(a => { a.classList.toggle("activa", a.dataset.p === p);
+    if (a.dataset.p === p) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+  if (p === "operaciones") cargarOps();
+  if (p === "vivo") { $("badge-vivo").style.display = "none"; $("badge-vivo").textContent = ""; }
+  if (p === "observabilidad") cargarObs();
+  if (p === "configuracion") cargarConfig();
+  if (p === "estrategias") cargarLab();
+  scrollTo({top: 0});
+}
+window.addEventListener("hashchange", () => irA(location.hash.slice(1) || "resumen"));
+function mostrarAviso(texto, tipo = "") { const a = $("aviso"); a.innerHTML = texto ? esc(texto) : ""; a.style.display = texto ? "block" : "none";
+  a.style.borderColor = tipo === "ok" ? "rgba(47,215,136,.5)" : tipo === "error" ? "rgba(240,98,125,.5)" : ""; }
+
+/* ---------------------------------------------------------------- datos principales */
+async function cargar() {
+  try {
+    const r = await fetch("/api/datos", {cache: "no-store"});
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    D = await r.json(); ultimoOk = Date.now(); pintar();
+  } catch (e) { estadoConexion(); }
+}
+function estadoConexion() {
+  const ch = $("estado");
+  if (Date.now() - ultimoOk > 30000) { ch.className = "pildora rojo"; ch.innerHTML = '<span class="p"></span>Sin conexión con el panel'; }
+}
+function pintar() {
+  const b = D.bot || {}, modo = b.modo || "?";
+  const ch = $("estado");
+  if (!b.ts) { ch.className = "pildora"; ch.textContent = "El bot aún no ha escrito datos"; }
+  else if (!D.bot_vivo) { ch.className = "pildora ambar"; ch.innerHTML = `<span class="p"></span>Datos de hace ${hace(D.edad_datos_seg)}`; }
+  else if (!b.operando) { ch.className = "pildora ambar vivo"; ch.innerHTML = '<span class="p"></span>En marcha · entradas bloqueadas'; }
+  else { ch.className = "pildora verde vivo"; ch.innerHTML = '<span class="p"></span>En marcha'; }
+  const mp = $("modo-pill"); mp.style.display = b.ts ? "" : "none";
+  mp.className = "pildora " + (modo === "real" ? "rojo" : modo === "shadow" ? "violeta" : "azul");
+  mp.textContent = modo === "real" ? "REAL" : modo === "shadow" ? "SHADOW" : "SIMULADO";
+  $("actualizado").textContent = b.ts ? "actualizado " + horaS(b.ts) : "";
+  const banda = $("banda");
+  banda.className = "banda " + (modo === "real" ? "real" : modo === "shadow" ? "shadow" : "simulado");
+  banda.innerHTML = `<b>${modo === "shadow" ? "SHADOW · órdenes deshabilitadas" : modo === "real" ? "REAL · dinero real" : "SIMULADO · dinero ficticio con precios reales"}</b>
+    <span class="suave">cuenta ${esc(b.cuenta || "—")} · red ${esc(b.red || "—")}</span> ${info("modo")}`
+    + (SOLO_LECTURA ? ' <span class="chip ambar">panel en solo lectura</span>' : "")
+    + (b.gestion && b.gestion.factor != null && b.gestion.factor < 1 ? ` <span class="chip ambar">tamaño × ${n(b.gestion.factor, 2)}</span>` : "");
+  $("b-cerrar").disabled = SOLO_LECTURA || modo === "shadow";
+  $("b-cerrar").title = modo === "shadow" ? "SHADOW: este modo no tiene órdenes" : "";
+  $("b-pausa").disabled = $("b-reanudar").disabled = SOLO_LECTURA;
+  for (const f of [pintarInicio, pintarResumen, pintarEstrategias, pintarInvestigacion, pintarVelasYCobertura, pintarBallenas, pintarConfigEfectiva])
+    try { f(b); } catch (e) { console.error(f.name, e); }
+  try { pintarAprendizaje(D.aprendizaje || {}); } catch (e) { console.error(e); }
+  const inc = (D.sistema_resumen || {}).incidentes_activos || 0;
+  $("badge-inc").style.display = inc ? "" : "none"; $("badge-inc").textContent = inc;
+}
+
+/* ---------------------------------------------------------------- resumen */
+function variacion(hist, horas) {
+  if (!hist.length) return null;
+  const lim = Date.now() / 1000 - horas * 3600; const ult = hist[hist.length - 1][1];
+  const base = hist.find(p => p[0] >= lim); if (!base || !base[1]) return null;
+  return {usd: ult - base[1], pct: (ult / base[1] - 1) * 100};
+}
+function pintarResumen(b) {
+  const L = b.limites || {}, E = b.exposicion || {}, hist = b.historial_saldo || [];
+  $("h-valor").textContent = usd(b.saldo);
+  const ch = [];
+  const ini = b.saldo_inicial;
+  if (b.saldo != null && ini) { const t = (b.saldo / ini - 1) * 100; ch.push(`<span class="chip ${t >= 0 ? "verde" : "rojo"}">${pct(t)} desde el inicio</span>`); }
+  const d = (L.dia || {}).valor_pct; if (d != null) ch.push(`<span class="chip ${d >= 0 ? "verde" : "rojo"}">${pct(d)} hoy</span>`);
+  const s = (L.semana || {}).valor_pct; if (s != null) ch.push(`<span class="chip ${s >= 0 ? "verde" : "rojo"}">${pct(s)} semana</span>`);
+  $("h-cambios").innerHTML = ch.join("") || '<span class="tenue">sin historial todavía</span>';
+  const pnl = (b.posiciones || []).reduce((a, p) => a + (p.pnl_no_realizado || 0), 0);
+  $("h-mini").innerHTML = mini("Disponible", usd(b.libre)) + mini("PnL abierto", usd(pnl), signo(pnl))
+    + mini("Máximo", usd(b.saldo_maximo)) + mini("Inicial", usd(b.saldo_inicial));
+  $("g-saldo").innerHTML = grafSaldo(hist, horasGrafico);
+  const lim = (x, l) => l ? Math.abs((x || 0) / l) * 100 : 0;
+  const oh = L.operaciones_hoy || {}, ra = L.riesgo_abierto || {}, eb = b.exposicion_beta || {};
+  $("kpis").innerHTML = [
+    kpi("Riesgo abierto", pct(E.riesgo_abierto_pct), `límite ${n((ra.limite_pct), 1)} %`, "riesgo_abierto", "", {pct: lim(E.riesgo_abierto_pct, ra.limite_pct)}),
+    kpi("Operaciones hoy", `${oh.valor ?? 0} <span class="tenue" style="font-size:15px">/ ${oh.limite ?? "—"}</span>`, "día UTC", "", "", {pct: lim(oh.valor, oh.limite)}),
+    kpi("Pérdida del día", pct((L.dia || {}).valor_pct), `bloqueo en ${pct((L.dia || {}).limite_pct, 0)}`, "limite_diario", signo((L.dia || {}).valor_pct),
+        {pct: (L.dia || {}).valor_pct < 0 ? lim((L.dia || {}).valor_pct, (L.dia || {}).limite_pct) : 0}),
+    kpi("Caída desde el máximo", pct((L.caida || {}).valor_pct), `bloqueo en ${pct((L.caida || {}).limite_pct, 0)}`, "", "",
+        {pct: lim((L.caida || {}).valor_pct, (L.caida || {}).limite_pct)}),
+    kpi("Exposición bruta / neta", `${n(E.bruta_pct, 0)} % <span class="tenue" style="font-size:15px">/ ${n(E.neta_pct, 0)} %</span>`, "bot + externas", "exposicion_bruta"),
+    kpi("Exposición a BTC (beta)", eb.pct == null ? "—" : n(eb.pct, 0) + " %", `límite ${eb.limite_pct ?? "—"} %` + ((eb.sin_beta || []).length ? ` · sin beta: ${esc(eb.sin_beta.join(", "))}` : ""), "", "",
+        {pct: lim(eb.pct, eb.limite_pct)}),
+  ].join("");
+  // bloqueos y velas
+  const bl = b.bloqueos || [];
+  $("bloqueos").innerHTML = (bl.length
+    ? `<ul class="lista">${bl.map(x => `<li><span class="punto aviso"></span><span>${esc(x)}</span></li>`).join("")}</ul>`
+    : '<div class="lista"><li style="display:flex;gap:10px"><span class="punto verde"></span><span>Entradas permitidas: el bot puede abrir operaciones si aparece una señal válida.</span></li></div>')
+    + (Object.keys(b.congelados || {}).length ? `<h3>Mercados congelados ${info("congelado")}</h3><ul class="lista">${Object.entries(b.congelados).map(([m, c]) =>
+      `<li><span class="punto error"></span><span><b>${esc(m)}</b> · ${esc(c.motivo)}</span></li>`).join("")}</ul>` : "")
+    + (b.gestion && (b.gestion.motivos || []).length ? `<h3>Tamaño reducido</h3><div class="suave" style="font-size:12.5px">${esc(b.gestion.motivos.join(" · "))}</div>` : "");
+  const ve = (b.motor || {}).velas || {};
+  $("r-velas").innerHTML = Object.keys(ve).length ? `<div class="mini-kpis">${Object.entries(ve).map(([iv, v]) =>
+    `<div><div class="e">Cierre de vela ${esc(iv)}</div><div class="v cuenta-atras" style="font-size:16px" data-cierre="${v.proximo_cierre_ts || ""}">—</div></div>`).join("")}</div>
+    <div class="nota">${((b.motor || {}).monedas || []).length ? `${b.motor.monedas.length} monedas vigiladas: ${esc(b.motor.monedas.slice(0, 14).join(", "))}${b.motor.monedas.length > 14 ? "…" : ""}` : ""}</div>`
+    : '<div class="vacio">El motor aún no ha evaluado ninguna vela.</div>';
+  // posiciones
+  const ps = b.posiciones || [];
+  $("pos-total").textContent = ps.length ? `${ps.length} abiertas · PnL ${usd(pnl)}` : "";
+  $("posiciones").innerHTML = tabla(["Mercado", "Tamaño#", "Entrada#", "Marca#", "PnL#", "Stop · objetivo", "Riesgo#", "Liquidación#", "Cierre por tiempo"],
+    ps.map(p => {
+      const valor = p.notional ?? (p.tam && p.precio_mark ? p.tam * p.precio_mark : null);
+      return `<tr class="clic" data-accion="abrirOp" data-arg="${esc(p.trade_id)}">
+      ${td(`${lado(p.lado)} <span class="moneda">${esc(p.moneda)}</span>${p.congelada ? ' <span class="chip rojo">congelada</span>' : ""}${p.riesgo_liquidacion ? ' <span class="chip rojo">liquidación cerca</span>' : ""}
+        <div class="sub">${esc(p.estrategia)}${p.explorando ? " · explorando" : ""}${!p.stop_verificado ? ' · <span class="neg">stop NO verificado</span>' : ""}</div>`)}
+      ${td(`${n(p.tam, 4)}<div class="sub">${usd(valor)}</div>`, "num")}${td(n(p.entrada, 4), "num")}
+      ${td(`${p.precio_mark == null ? '<span class="tenue">desconocida</span>' : n(p.precio_mark, 4)}<div class="sub">mid ${n(p.precio_mid, 4)}</div>`, "num")}
+      ${td(`${usd(p.pnl_no_realizado)}<div class="sub">${p.r_usd ? rr((p.pnl_no_realizado || 0) / p.r_usd) : ""}</div>`, "num " + signo(p.pnl_no_realizado))}
+      ${td(escalera(p))}
+      ${td(usd(p.riesgo_usd), "num")}
+      ${td(p.liquidacion ? `${n(p.liquidacion, 4)}<div class="sub">${n(p.distancia_liquidacion_pct, 1)} %${p.liquidacion_estimada ? " · estimada" : ""}</div>` : '<span class="ambar-t">desconocida</span>', "num")}
+      ${td(`${hora(p.limite_ts)}<div class="sub">${p.limite_ts ? "en " + hace(p.limite_ts - Date.now() / 1000) : ""}</div>`)}</tr>`; }),
+    "El bot no tiene posiciones abiertas.");
+  // alertas
+  const al = b.alertas || [];
+  const graves = al.filter(a => a.severidad === "error").length;
+  $("badge-alertas").style.display = graves ? "" : "none"; $("badge-alertas").textContent = graves;
+  $("alertas").innerHTML = al.length ? `<ul class="lista">${al.slice(0, 8).map(a => `<li><span class="punto ${esc(a.severidad)}"></span>
+    <span style="flex:1">${esc(a.mensaje)}<div class="sub tenue" style="font-size:11.5px">${hora(a.ts)}${a.trade_id ? ` · <a href="#" data-accion="abrirOp" data-arg="${esc(a.trade_id)}">ver operación</a>` : ""}</div></span></li>`).join("")}</ul>`
+    : '<div class="vacio">Sin alertas. Todo tranquilo.</div>';
+  // límites
+  const fl = (etq, v, l, cls) => `<tr>${td(esc(etq))}${td(v, "num " + (cls || ""))}${td(l, "num")}</tr>`;
+  $("limites").innerHTML = tabla(["Límite", "Ahora#", "Bloquea en#"], [
+    fl("Pérdida del día (UTC)", pct((L.dia || {}).valor_pct), pct((L.dia || {}).limite_pct, 0), signo((L.dia || {}).valor_pct)),
+    fl("Pérdida de la semana (UTC)", pct((L.semana || {}).valor_pct), pct((L.semana || {}).limite_pct, 0), signo((L.semana || {}).valor_pct)),
+    fl("Caída desde el máximo", pct((L.caida || {}).valor_pct), pct((L.caida || {}).limite_pct, 0)),
+    fl("Operaciones hoy", oh.valor ?? 0, oh.limite ?? "—"),
+    fl("Riesgo abierto", pct(E.riesgo_abierto_pct), n(ra.limite_pct, 1) + " %"),
+    fl("Margen de mantenimiento / cuenta", (b.margen || {}).fraccion_mantenimiento == null ? "—" : n(b.margen.fraccion_mantenimiento * 100, 1) + " %", "—"),
+  ]);
+  const ex = b.externas || [], oe = b.ordenes_externas || [];
+  $("externas").innerHTML = tabla(["Mercado", "Tamaño#", "Valor#", "PnL#"], ex.map(p => `<tr>${td(lado(p.lado) + ` <span class="moneda">${esc(p.moneda)}</span>`)}
+    ${td(n(p.tam, 4), "num")}${td(usd(p.notional), "num")}${td(usd(p.pnl), "num " + signo(p.pnl))}</tr>`), "No hay posiciones externas: la cuenta es solo del bot.")
+    + (oe.length ? `<h3 style="padding:0 12px">Órdenes externas</h3>` + tabla(["Mercado", "Tipo", "Lado", "Tamaño#", "Precio#"], oe.map(o => `<tr>${td(esc(o.moneda))}
+    ${td(esc(o.tipo))}${td(o.compra ? "compra" : "venta")}${td(n(o.sz, 4), "num")}${td(n(o.trigger_px || o.px, 4), "num")}</tr>`)) : "")
+    + ((b.posiciones_legado || []).length ? `<p class="nota" style="padding:0 12px">Posiciones de una versión anterior con propiedad incierta: ${b.posiciones_legado.map(esc).join(", ")}. No se tocan.</p>` : "");
+  const sh = b.shadow_abiertas || [];
+  $("caja-shadow").style.display = b.modo === "shadow" ? "" : "none";
+  $("shadow").innerHTML = tabla(["Operación", "Estrategia", "Tamaño teórico#", "Entrada modelada#", "Riesgo#", "Desde"], sh.map(s =>
+    `<tr class="clic" data-accion="abrirOp" data-arg="${esc(s.trade_id)}">${td(lado(s.lado) + " " + esc(s.moneda))}${td(esc(s.estrategia))}${td(n(s.tam, 4), "num")}
+    ${td(n(s.entrada, 4), "num")}${td(usd(s.riesgo_usd), "num")}${td(hora(s.ts))}</tr>`), "Sin intenciones abiertas.");
+}
+function escalera(p) {
+  const sl = p.sl, ent = p.entrada, tp = p.tpf || p.tp1, px = p.precio_mark || p.precio_mid;
+  if (!sl || !ent) return '<span class="tenue">—</span>';
+  const lo = Math.min(sl, tp || ent * 2 - sl, px || ent), hi = Math.max(sl, tp || ent * 2 - sl, px || ent);
+  const X = v => ((v - lo) / ((hi - lo) || 1) * 100).toFixed(1);
+  const larga = p.lado === "L";
+  const izq = larga ? "pos" : "neg";
+  return `<div class="escalera" title="stop ${n(sl, 4)} · entrada ${n(ent, 4)}${tp ? " · objetivo " + n(tp, 4) : " · sin objetivo"}">
+    <div class="pista" style="${larga ? "" : "transform:scaleX(-1)"}"></div>
+    <div class="marca" style="left:${X(sl)}%;background:var(--rojo)"></div><div class="marca" style="left:${X(ent)}%"></div>
+    ${tp ? `<div class="marca" style="left:${X(tp)}%;background:var(--verde)"></div>` : ""}
+    ${px ? `<div class="actual" style="left:${X(px)}%"></div>` : ""}</div>
+    <div class="sub">stop ${n(sl, 4)} ${p.en_breakeven ? "· equilibrio" : ""} · ${n(p.distancia_stop_pct, 2)} %</div>`;
+}
+function grafSaldo(puntos, horas) {
+  if (horas) { const lim = Date.now() / 1000 - horas * 3600; const f = puntos.filter(p => p[0] >= lim); if (f.length >= 2) puntos = f; }
+  if (puntos.length < 2) return '<div class="vacio" style="padding:60px 0">Aún no hay suficiente historial para dibujar la evolución.</div>';
+  const W = 900, H = 220, PL = 8, PR = 64, PT = 12, PB = 24, xs = puntos.map(p => p[0]), ys = puntos.map(p => p[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs); let y0 = Math.min(...ys), y1 = Math.max(...ys);
+  if (y1 - y0 < 1e-9) { y0 -= 1; y1 += 1; } const pad = (y1 - y0) * .08; y0 -= pad; y1 += pad;
+  const X = x => PL + (x - x0) / ((x1 - x0) || 1) * (W - PL - PR), Y = y => PT + (1 - (y - y0) / (y1 - y0)) * (H - PT - PB);
+  const sube = ys[ys.length - 1] >= ys[0], col = sube ? "#2fd788" : "#f0627d";
+  const d = puntos.map((p, i) => (i ? "L" : "M") + X(p[0]).toFixed(1) + " " + Y(p[1]).toFixed(1)).join(" ");
+  const area = d + ` L${X(x1).toFixed(1)} ${H - PB} L${X(x0).toFixed(1)} ${H - PB} Z`;
+  let ejes = "";
+  for (let i = 0; i <= 3; i++) { const v = y0 + (y1 - y0) * i / 3; const y = Y(v);
+    ejes += `<line x1="${PL}" x2="${W - PR}" y1="${y}" y2="${y}" stroke="#1f3139" stroke-dasharray="3 4"/><text x="${W - PR + 8}" y="${y + 4}">${n(v, 2)}</text>`; }
+  for (let i = 0; i <= 4; i++) { const t = x0 + (x1 - x0) * i / 4;
+    ejes += `<text x="${X(t)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : i === 4 ? "end" : "middle"}">${new Date(t * 1000).toLocaleDateString("es-ES", {day: "2-digit", month: "2-digit"})} ${new Date(t * 1000).toLocaleTimeString("es-ES", {hour: "2-digit", minute: "2-digit"})}</text>`; }
+  return `<svg class="graf" viewBox="0 0 ${W} ${H}" role="img" aria-label="Valor de la cuenta entre ${n(Math.min(...ys))} y ${n(Math.max(...ys))} $">
+    <defs><linearGradient id="ga" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".28"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+    ${ejes}<path d="${area}" fill="url(#ga)"/><path d="${d}" fill="none" stroke="${col}" stroke-width="2"/>
+    <circle cx="${X(xs[xs.length - 1])}" cy="${Y(ys[ys.length - 1])}" r="3.5" fill="${col}"/></svg>`;
+}
+$("g-periodos").addEventListener("click", e => { const bt = e.target.closest("button"); if (!bt) return;
+  horasGrafico = +bt.dataset.h; for (const x of $("g-periodos").children) x.classList.toggle("act", x === bt);
+  if (D) $("g-saldo").innerHTML = grafSaldo((D.bot || {}).historial_saldo || [], horasGrafico); });
+
+/* ---------------------------------------------------------------- estrategias */
+let LAB = null;
+async function cargarLab() { try { LAB = await (await fetch("/api/laboratorio", {cache: "no-store"})).json(); } catch (e) { LAB = null; }
+  if (D) pintarEstrategias(D.bot || {}); }
+const ETAPAS = {investigacion: ["investigación", ""], laboratorio: ["laboratorio", "azul"], shadow: ["shadow", "violeta"], paper: ["paper", "azul"],
+                apta_revision: ["apta para revisión", "ambar"], real_habilitado: ["real habilitado", "rojo"]};
+const ESTADO_LAB = {supera: ["supera", "verde"], no_supera: ["no supera", "rojo"], no_evaluable: ["no evaluable", ""], exploratorio: ["exploratorio", "ambar"]};
+function barraEv(p, tipo, etq) {
+  const x = (p || {})[tipo] || {n: 0}, obj = (p || {}).objetivo || 30, pc = Math.min(100, x.n / obj * 100);
+  return `<div class="fila-p"><span>${esc(etq)}</span><div class="medidor" style="margin:0"><i style="width:${pc}%"></i></div>
+    <span class="num">${x.n}/${obj}${x.n ? ` <span class="${signo(x.r_medio)}">${n(x.r_medio, 2)}</span>` : ""}</span></div>`;
+}
+function pintarCerebro(cb) {
+  if (!cb) { $("cerebro-est").innerHTML = '<div class="vacio">El bot aún no ha informado del cerebro.</div>'; return; }
+  const ct = cb.contadores || {}, mods = Object.entries(cb.modelos || {});
+  $("cerebro-est").innerHTML = `<div class="tarj-cab"><h2>Cerebro · único que decide</h2>
+      <span class="chip ${cb.error ? "rojo" : "verde"}">${cb.error ? "sin modelo válido: no entra nadie" : esc(cb.version || "")}</span>
+      <span class="chip ${cb.decide ? "acento" : ""}">${cb.decide ? "decide" : "solo observa"}</span></div>
+    ${cb.error ? `<p class="nota">${esc(cb.error)}</p>` : ""}
+    <div class="rej k4">${kpi("Entra", ct.entra ?? 0, "candidatas aprobadas")}${kpi("No entra", ct.no_entra ?? 0, "resultado esperado bajo")}
+      ${kpi("Se abstiene", ct.abstiene ?? 0, "sin modelo o sin datos")}${kpi("Modelos", mods.map(([iv]) => iv).join(" · ") || "—", "intervalos con modelo")}</div>
+    ${mods.map(([iv, m]) => `<p class="nota"><b>${esc(iv)}</b>: ${m.n} casos · laboratorio: ${esc(m.estado_laboratorio || "—")} · pesos: ${
+      esc(Object.entries(m.pesos || {}).map(([k, v]) => `${k} ${v > 0 ? "+" : ""}${n(v, 3)}`).join(", "))}</p>`).join("")}
+    ${(cb.ultimas || []).slice(-5).reverse().map(u => `<div class="sub">${hora(u.ts)} · ${esc(u.motivo)}</div>`).join("")}
+    <p class="nota">Las estrategias solo proponen; el cerebro decide con datos de Hyperliquid, Binance y Bybit. La protección (límites, stops, bloqueos) se aplica después, igual que siempre.</p>`;
+}
+function pintarEstrategias(b) {
+  pintarCerebro(b.cerebro);
+  const es = b.estrategias || [], filas = Object.fromEntries(((LAB || {}).filas || []).map(f => [f.clave, f]));
+  $("lab-meta").textContent = LAB && LAB.generado ? `laboratorio del ${hora(LAB.generado)}` : "";
+  const vg = b.vigilancia || {}, fe = b.factor_estrategia || {};
+  $("estrategias").innerHTML = es.length ? es.map(e => {
+    const f = filas[e.clave] || {}, et = ETAPAS[e.invalidada ? "investigacion" : e.etapa] || [e.etapa, ""];
+    const el = ESTADO_LAB[f.estado] || [e.laboratorio_superado ? "supera" : "sin evaluar", e.laboratorio_superado ? "verde" : ""];
+    const v = vg[e.clave];
+    return `<div class="tarj estr" tabindex="0" data-accion="abrirEstrategia" data-arg="${esc(e.clave)}" >
+      <div class="cab-e"><span class="nom">${esc(e.clave)}</span><button class="info" data-g="est_${esc(String(e.clave).replace(/_(1h|4h)$/, ""))}" aria-label="Qué hace esta estrategia">ⓘ</button><span class="chip">v${esc(e.version || "?")}</span>
+        <span style="margin-left:auto" class="chip ${e.activa ? "acento" : ""}">${e.activa ? "genera señales" : "apagada"}</span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip ${et[1]}">${esc(et[0])}</span><span class="chip ${el[1]}">laboratorio: ${esc(el[0])}</span>
+        ${v && v.estado !== "sin_datos" ? `<span class="chip ${v.estado === "degradada" ? "rojo" : v.estado === "ok" ? "verde" : "ambar"}">vigilancia: ${esc(v.estado)}</span>` : ""}
+        ${fe[e.clave] ? `<span class="chip ambar">tamaño × ${fe[e.clave]}</span>` : ""}</div>
+      <div class="mets">
+        <div><div class="e">R medio OOS</div><div class="v ${signo(f.oos_r)}">${f.oos_r == null ? "—" : rr(f.oos_r)}</div></div>
+        <div><div class="e">Operaciones</div><div class="v">${f.oos_n ?? "—"}</div></div>
+        <div><div class="e" title="Por debajo de 2, el resultado no se distingue del azar">t</div><div class="v">${f.oos_t == null ? "—" : n(f.oos_t, 2)}</div></div>
+      </div>
+      <div class="progreso">${barraEv(e.progreso, "paper", "simulado")}${barraEv(e.progreso, "shadow", "shadow")}</div>
+      ${f.motivo ? `<div class="sub tenue" style="font-size:12px">${esc(f.motivo)}</div>` : ""}
+    </div>`; }).join("") : '<div class="vacio">El bot aún no ha informado de sus estrategias.</div>';
+  const da = b.datos_acumulados || {};
+  const barraDias = (v, m, etq) => kpi(etq, `${v ?? 0}${m ? ` <span class="tenue" style="font-size:15px">/ ${m}</span>` : ""} días`, "", "", "", m ? {pct: (v || 0) / m * 100} : null);
+  $("datos-acum").innerHTML = `<div class="rej k4">${barraDias(da.dias_mercado, da.min_dias_mercado, "Mercado grabado (interés abierto y flujo)")}
+    ${barraDias(da.dias_libro, da.min_dias_libro, "Fotos del libro de órdenes")}${barraDias(da.dias_velas, null, "Velas propias archivadas")}</div>
+    <p class="nota">Con 14 días de mercado grabado se puede evaluar la estrategia de liquidaciones; con 14 de libro, el desequilibrio del libro.</p>`;
+}
+function tablaMetricas(filas) {
+  return tabla(["Conjunto", "Ops#", "Ganan#", "R medio#", "R total#", "Fact. benef.#", "Caída máx.#", "t#"], filas.filter(f => f[1]).map(([etq, m, cls]) =>
+    `<tr class="${cls || ""}">${td(esc(etq))}${td(m.n ?? "—", "num")}${td(m.ganan_pct == null ? "—" : n(m.ganan_pct, 0) + " %", "num")}
+    ${td(rr(m.r_medio, 3), "num " + signo(m.r_medio))}${td(rr(m.r_total, 1), "num " + signo(m.r_total))}${td(n(m.factor_beneficio, 2), "num")}
+    ${td(m.caida_max_r == null ? "—" : n(m.caida_max_r, 1) + " R", "num")}${td(n(m.t, 2), "num")}</tr>`));
+}
+function barrasH(obj, etiquetaN = true) {
+  const ent = Object.entries(obj || {}); if (!ent.length) return '<div class="vacio">Sin datos.</div>';
+  const vals = ent.map(([, v]) => v.r_medio ?? v); const m = Math.max(...vals.map(Math.abs), 1e-9);
+  return `<div class="barras-h">${ent.map(([k, v]) => { const r = v.r_medio ?? v, w = Math.abs(r) / m * 50;
+    return `<div class="b"><span class="moneda" style="font-weight:550">${esc(k)}</span><div class="pista"><span class="cero" style="left:50%"></span>
+      <i style="${r >= 0 ? `left:50%;width:${w}%;background:var(--verde)` : `left:${50 - w}%;width:${w}%;background:var(--rojo)`};opacity:.75"></i></div>
+      <span class="num ${signo(r)}">${rr(r)}${etiquetaN && v.n != null ? ` <span class="tenue">· ${v.n}</span>` : ""}</span></div>`; }).join("")}</div>`;
+}
+async function abrirEstrategia(clave) {
+  abrirCajon(esc(clave));
+  let d; try { const r = await fetch("/api/estrategia?clave=" + encodeURIComponent(clave), {cache: "no-store"}); d = await r.json(); if (!r.ok) throw 0; }
+  catch (e) { cuerpoCajon('<div class="vacio">No hay datos de esta estrategia.</div>'); return; }
+  const L = d.laboratorio || {}, est = d.estado || {}, ver = L.veredicto || {};
+  const el = ESTADO_LAB[L.estado_evaluacion] || ["sin evaluar", ""];
+  $("cajon-etq").innerHTML = `<span class="chip ${el[1]}">laboratorio: ${esc(el[0])}</span>`;
+  const bases = Object.entries(L.lineas_base || {}).map(([k, m]) => [`Línea base: ${k}`, m, "tenue"]);
+  const estres = Object.values(L.escenarios_estres || {}).map(m => [`Estrés: ${m.descripcion}`, m]);
+  const ap = d.aprendizaje || {};
+  cuerpoCajon(`
+    ${ver.motivo ? `<div class="aviso" style="display:block">${esc(ver.motivo)}</div>` : ""}
+    <div class="mini-kpis">${mini("Etapa", esc((ETAPAS[est.etapa] || [est.etapa || "—"])[0]))}${mini("Genera señales", est.activa ? "sí" : "no")}
+      ${mini("Intervalo", esc(L.intervalo || "—"))}${mini("Variantes probadas", L.variantes ?? "—")}
+      ${mini("Largos / cortos", L.exposicion ? `${n(L.exposicion.largos_pct, 0)} / ${n(L.exposicion.cortos_pct, 0)} %` : "—")}
+      ${mini("Trimestres positivos", L.estabilidad ? `${L.estabilidad.trimestres_positivos}/${L.estabilidad.trimestres_evaluables}` : "—")}</div>
+    <h3>Laboratorio · ${esc(hora(d.lab_generado))}</h3>
+    <div class="tabla">${tablaMetricas([["Entrenamiento", L.entrenamiento], ["Fuera de muestra", L.fuera_de_muestra || L.validacion],
+      ["Holdout final", L.holdout], ["Monedas con historia completa", L.validacion_veteranas], ["Con filtro de aprendizaje", L.validacion_con_aprendizaje], ...bases, ...estres])}</div>
+    <p class="nota">Solo cuenta lo de fuera de muestra y el holdout. Si la estrategia no supera a las líneas base (entradas al azar, siempre largo), no aporta nada.</p>
+    ${(ver.comprobaciones || []).length ? `<h3>Comprobaciones</h3><ul class="lista">${ver.comprobaciones.map(c => `<li><span class="punto ${c.cumple ? "verde" : "error"}"></span><span>${esc(c.regla)} <span class="tenue">${esc(typeof c.valor === "object" ? JSON.stringify(c.valor) : c.valor ?? "")}</span></span></li>`).join("")}</ul>` : ""}
+    <h3>Por moneda (fuera de muestra)</h3>${barrasH(L.por_mercado)}
+    <div class="rej d2" style="grid-template-columns:1fr 1fr;gap:16px">
+      <div><h3>Por régimen de BTC</h3>${barrasH(L.por_regimen)}</div>
+      <div><h3>Por lado</h3>${barrasH(Object.fromEntries(Object.entries(L.por_lado || {}).map(([k, v]) => [ladoTxt(k), v])))}</div></div>
+    <h3>Por trimestre</h3>${barrasH((L.estabilidad || {}).por_trimestre)}
+    <h3>Parámetros</h3>${dl(Object.entries(L.params || est.params || {}).map(([k, v]) => [k, esc(JSON.stringify(v))]))}
+    <h3>Evidencia en vivo (versión actual)</h3><div class="progreso">${barraEv(est.progreso, "paper", "simulado")}${barraEv(est.progreso, "shadow", "shadow")}</div>
+    ${d.vigilancia ? `<p class="nota">Vigilancia: ${esc(d.vigilancia.texto || d.vigilancia.estado)}${d.factor ? ` · tamaño × ${d.factor}` : ""}</p>` : ""}
+    <h3>Lo aprendido de sus señales</h3>${tabla(["Fuente", "Casos#", "Ganan#", "R medio#"], Object.entries(ap).filter(([, r]) => r.n).map(([k, r]) =>
+      `<tr>${td(esc(k))}${td(r.n, "num")}${td(r.ganan + " %", "num")}${td(rr(r.media, 3), "num " + signo(r.media))}</tr>`), "Aún sin casos cerrados.")}
+    <h3>Últimas operaciones</h3>${tabla(["Abierta", "Mercado", "Estado", "R#"], (d.operaciones || []).map(o =>
+      `<tr class="clic" data-accion="abrirOp" data-arg="${esc(o.trade_id)}">${td(hora(o.abierta_ts))}${td(lado(o.lado) + " " + esc(o.moneda))}${td(esc(o.estado))}
+      ${td(o.r_neto != null ? rr(o.r_neto) : o.r_modelado != null ? rr(o.r_modelado) + " <span class='tenue'>mod.</span>" : "—", "num " + signo(o.r_neto ?? o.r_modelado))}</tr>`), "Sin operaciones todavía.")}
+  `);
+}
+
+/* ---------------------------------------------------------------- investigación */
+function pintarInvestigacion(b) {
+  const iv = b.investigacion || {}, vg = b.vigilancia || {}, fe = b.factor_estrategia || {}, ui = iv.ultimo_informe || {};
+  $("i-kpis").innerHTML = kpi("Ideas probadas (total)", iv.probadas_total ?? 0) + kpi("t exigida ahora", iv.t_requerido ?? "—", "sube con cada idea probada")
+    + kpi("En el cementerio", iv.en_cementerio ?? 0) + kpi("Última ronda", ui.fecha ? esc(ui.fecha) : "aún ninguna", ui.fecha ? `${ui.probadas_hoy ?? 0} ideas · ${ui.minutos ?? "?"} min` : "");
+  $("i-aspirantes").innerHTML = tabla(["Idea", "Desde", "t laboratorio#", "Progreso en vivo", "R medio en vivo#"],
+    (iv.aspirantes || []).map(a => { const v = a.vivo || {}; return `<tr>${td(esc(a.descripcion))}${td(esc(a.fecha || "—"))}${td(a.t_lab ?? "—", "num")}
+      ${td(`<div class="medidor" style="margin:0;min-width:120px"><i style="width:${Math.min(100, (v.n || 0) / a.objetivo * 100)}%"></i></div><span class="sub">${v.n || 0} / ${a.objetivo}</span>`)}
+      ${td(v.r_medio == null ? "—" : rr(v.r_medio, 3), "num " + signo(v.r_medio))}</tr>`; }), "Ninguna idea ha superado todavía el laboratorio. Es lo normal.");
+  $("i-revision").innerHTML = tabla(["Idea", "Fecha", "Resultado"],
+    (iv.en_revision || []).map(a => `<tr>${td(esc(a.descripcion))}${td(esc(a.fecha || "—"))}${td(esc(a.motivo || "—"))}</tr>`), "Nada pendiente.");
+  const nombres = {sin_datos: ["sin datos", ""], ok: ["bien", "verde"], vigilar: ["vigilar", "ambar"], degradada: ["degradada", "rojo"]};
+  $("i-vigilancia").innerHTML = tabla(["Estrategia", "Estado", "Detalle", "Tamaño#"],
+    Object.entries(vg).map(([k, v]) => { const x = nombres[v.estado] || [v.estado, ""]; return `<tr class="clic" data-accion="abrirEstrategia" data-arg="${esc(k)}">${td(esc(k))}${td(`<span class="chip ${x[1]}">${esc(x[0])}</span>`)}
+      ${td(`<span class="sub">${esc(v.texto)}</span>`)}${td(fe[k] ? `× ${fe[k]}` : "normal", "num")}</tr>`; }), "Aún no hay operaciones cerradas en los últimos 60 días.");
+  $("i-cementerio").innerHTML = tabla(["Fecha", "Idea", "Por qué no"],
+    (iv.cementerio_reciente || []).map(c => `<tr>${td(esc(c.fecha || "—"))}${td(esc(c.descripcion))}${td(`<span class="sub">${esc(c.motivo)}</span>`)}</tr>`));
+}
+
+/* ---------------------------------------------------------------- señales en vivo */
+const CATEGORIAS = {
+  "Señales y decisiones": ["senal_detectada", "decision_aprobada", "decision_rechazada", "intencion_shadow", "resultado_shadow"],
+  "Órdenes": ["orden_enviada", "orden_abierta", "orden_parcial", "orden_completada", "orden_cancelada", "orden_rechazada",
+              "orden_desconocida", "orden_no_confirmada", "orden_cancelacion_solicitada", "orden_disparada"],
+  "Protección y operaciones": ["proteccion", "stop_movido", "entrada", "salida", "cierre", "alerta", "error"],
+  "Ballenas y mercado": ["ballena_fill", "ballena_cambio_inferido", "operacion_grande", "liquidacion_inferida"],
+  "Fuentes de datos": ["datos_obsoletos", "reconexion", "fuente_perdida", "fuente_recuperada"],
+};
+const NOMBRE_EV = {senal_detectada: "Señal", decision_aprobada: "Aprobada", decision_rechazada: "Rechazada",
+  intencion_shadow: "Intención shadow", resultado_shadow: "Resultado shadow (modelado)", orden_enviada: "Orden enviada",
+  orden_abierta: "Orden en libro", orden_parcial: "Orden parcial", orden_completada: "Orden ejecutada",
+  orden_cancelada: "Orden cancelada", orden_rechazada: "Orden rechazada", orden_desconocida: "Orden: estado desconocido",
+  orden_no_confirmada: "Orden no confirmada", orden_cancelacion_solicitada: "Cancelación pedida", orden_disparada: "Orden disparada",
+  proteccion: "Protección", stop_movido: "Stop movido", entrada: "Fill de entrada", salida: "Fill de salida", cierre: "Cierre",
+  alerta: "Alerta", error: "Error", ballena_fill: "Fill de ballena (observado)", ballena_cambio_inferido: "Cambio de ballena (inferido)",
+  operacion_grande: "Operación grande (pública)", liquidacion_inferida: "Posible liquidación (inferida)",
+  datos_obsoletos: "Datos obsoletos", reconexion: "Reconexión", fuente_perdida: "Fuente perdida", fuente_recuperada: "Fuente recuperada"};
+const V = {eventos: [], vistos: new Set(), cursor: null, es: null, sondeo: null, pausado: false, pendientes: 0, modo: "—",
+           ultimoEv: null, latencias: [], fallosSse: 0, conectado: false, botAntiguedad: null, porSeq: new Map()};
+(function prepararFiltros() {
+  const sel = $("v-tipo");
+  for (const [cat, tipos] of Object.entries(CATEGORIAS)) {
+    const g = document.createElement("optgroup"); g.label = cat;
+    g.innerHTML = `<option value="${tipos.join(",")}">Todo: ${esc(cat)}</option>` + tipos.map(t => `<option value="${t}">${esc(NOMBRE_EV[t] || t)}</option>`).join("");
+    sel.appendChild(g);
+  }
+  let t = null;
+  for (const id of ["v-tipo", "v-moneda", "v-estrategia", "v-lado", "v-estado", "v-q"])
+    $(id).addEventListener(id === "v-tipo" || id === "v-lado" ? "change" : "input", () => { clearTimeout(t); t = setTimeout(reiniciarVivo, 350); });
+  $("v-limpiar").addEventListener("click", () => { for (const id of ["v-tipo", "v-moneda", "v-estrategia", "v-lado", "v-estado", "v-q"]) $(id).value = ""; reiniciarVivo(); });
+  $("v-pausa").addEventListener("click", () => { V.pausado = !V.pausado; $("v-pausa").textContent = V.pausado ? "Reanudar" : "Pausar";
+    if (!V.pausado) { V.pendientes = 0; pintarEventos(); } pintarEstadoVivo(); });
+})();
+function paramsFiltro() {
+  const p = new URLSearchParams();
+  const m = {tipo: "v-tipo", moneda: "v-moneda", estrategia: "v-estrategia", lado: "v-lado", estado: "v-estado", q: "v-q"};
+  for (const [k, id] of Object.entries(m)) { const v = $(id).value.trim(); if (v) p.set(k, v); }
+  return p;
+}
+function cerrarConexiones() { if (V.es) { V.es.close(); V.es = null; } if (V.sondeo) { clearInterval(V.sondeo); V.sondeo = null; } }
+async function reiniciarVivo() {
+  cerrarConexiones();
+  V.eventos = []; V.vistos = new Set(); V.porSeq = new Map(); V.cursor = null; V.pendientes = 0; V.fallosSse = 0;
+  const p = paramsFiltro(); p.set("limite", "300");
+  try {
+    const r = await (await fetch("/api/feed?" + p, {cache: "no-store"})).json();
+    for (const ev of r.eventos) añadirEvento(ev, false);
+    V.cursor = r.ultimo_seq; V.botAntiguedad = r.bot_antiguedad_seg; V.conectado = true;
+  } catch (e) { V.conectado = false; V.cursor = V.cursor ?? 0; }
+  pintarEventos(); pintarEstadoVivo(); abrirStream();
+}
+function abrirStream() {
+  if (!window.EventSource || V.fallosSse >= 3) return activarSondeo();
+  const p = paramsFiltro(); p.set("desde", String(V.cursor || 0));
+  const es = new EventSource("/api/feed/stream?" + p);
+  V.es = es;
+  es.addEventListener("evento", m => {
+    const ev = JSON.parse(m.data);
+    if (añadirEvento(ev, true)) { V.cursor = Math.max(V.cursor || 0, ev.seq); if (V.pausado) V.pendientes++; else pintarEventos(); }
+    V.modo = "sse"; V.conectado = true; V.fallosSse = 0; pintarEstadoVivo();
+  });
+  es.addEventListener("estado", m => { const d = JSON.parse(m.data); V.botAntiguedad = d.bot_ts ? Date.now() / 1000 - d.bot_ts : null;
+    V.modo = "sse"; V.conectado = true; pintarEstadoVivo(); });
+  es.onopen = () => { V.modo = "sse"; V.conectado = true; pintarEstadoVivo(); };
+  es.onerror = () => { V.conectado = false; V.fallosSse++; pintarEstadoVivo();
+    if (V.fallosSse >= 3) { es.close(); V.es = null; activarSondeo(); } };
+}
+function activarSondeo() {
+  if (V.sondeo) return;
+  V.modo = "sondeo";
+  const paso = async () => {
+    const p = paramsFiltro(); p.set("desde", String(V.cursor || 0)); p.set("limite", "500");
+    try {
+      const r = await (await fetch("/api/feed?" + p, {cache: "no-store"})).json();
+      let k = 0;
+      for (const ev of r.eventos) if (añadirEvento(ev, true)) k++;
+      V.cursor = Math.max(V.cursor || 0, r.ultimo_seq); V.botAntiguedad = r.bot_antiguedad_seg; V.conectado = true;
+      if (k) { if (V.pausado) V.pendientes += k; else pintarEventos(); }
+    } catch (e) { V.conectado = false; }
+    pintarEstadoVivo();
+  };
+  paso(); V.sondeo = setInterval(paso, 3000);
+}
+function añadirEvento(ev, nuevo) {
+  if (V.vistos.has(ev.seq)) return false;          // sin duplicados al reconectar
+  V.vistos.add(ev.seq); V.porSeq.set(ev.seq, ev);
+  ev._nuevo = nuevo; ev._llegada = Date.now() / 1000;
+  V.eventos.push(ev);
+  if (V.eventos.length > 1 && V.eventos[V.eventos.length - 2].seq > ev.seq) V.eventos.sort((a, b) => a.seq - b.seq);
+  if (V.eventos.length > 1000) { for (const x of V.eventos.splice(0, V.eventos.length - 1000)) { V.vistos.delete(x.seq); V.porSeq.delete(x.seq); } }
+  V.ultimoEv = ev;
+  if (nuevo && ev.ts_exchange) { V.latencias.push(ev._llegada - ev.ts_exchange); if (V.latencias.length > 50) V.latencias.shift(); }
+  if (nuevo && location.hash !== "#vivo") { const b = $("badge-vivo"); b.style.display = ""; b.textContent = (+b.textContent || 0) + 1; }
+  return true;
+}
+function claseEv(ev) {
+  if (/inferid/.test(ev.tipo) || ev.estado === "inferido") return "ambar";
+  if (["decision_rechazada", "orden_rechazada", "orden_desconocida", "orden_no_confirmada", "error", "fuente_perdida", "datos_obsoletos"].includes(ev.tipo)) return "rojo";
+  if (["decision_aprobada", "orden_completada", "entrada", "fuente_recuperada"].includes(ev.tipo)) return "verde";
+  if (ev.tipo.startsWith("ballena") || ev.tipo === "operacion_grande") return "azul";
+  if (ev.tipo === "senal_detectada") return "acento";
+  return "";
+}
+function filaEvento(ev, obsoleto) {
+  const p = ev.precio_ref;
+  const precio = p ? `${n(p.valor, 4)} <span class="tenue">${esc(p.tipo || "?")}</span>` : desc(null);
+  const tam = ev.tam != null ? n(ev.tam, 4) : "";
+  const riesgo = ev.riesgo_usd != null ? `<div class="sub">riesgo ${usd(ev.riesgo_usd)}</div>` : "";
+  const det = ev.detalle ? esc(String(ev.detalle).slice(0, 160)) : "";
+  return `<tr class="clic${ev._nuevo ? " ev-nuevo" : ""}${obsoleto ? " obsoleto" : ""}" data-accion="abrirEvento" data-arg="${esc(ev.seq)}" data-num="1">
+    ${td(`${horaS(ev.ts_proceso)}<div class="sub">${ev._nuevo ? "nuevo" : "histórico"} · #${ev.seq}</div>`)}
+    ${td(`<span class="chip ${claseEv(ev)}">${esc(NOMBRE_EV[ev.tipo] || ev.tipo)}</span>`)}
+    ${td(`${ev.lado === "L" || ev.lado === "S" ? lado(ev.lado) : esc(ev.lado || "")} <span class="moneda">${esc(ev.moneda || "")}</span>${ev.estrategia ? `<div class="sub">${esc(ev.estrategia)}</div>` : ""}`)}
+    ${td(precio, "num")}${td((tam || '<span class="tenue">—</span>') + riesgo, "num")}${td(desc(esc(ev.estado || "")))}
+    ${td(`<span class="sub" style="font-size:12.5px;color:var(--suave)">${det}</span>`)}</tr>`;
+}
+function pintarEventos() {
+  const obsoleto = V.botAntiguedad != null && V.botAntiguedad > 120;
+  $("v-eventos").innerHTML = tabla(["Hora", "Evento", "Mercado", "Precio#", "Tamaño#", "Estado", "Detalle"],
+    V.eventos.slice().reverse().map(ev => filaEvento(ev, obsoleto)), "Sin eventos con estos filtros todavía.");
+  $("v-pie").textContent = V.eventos.length ? `Mostrando ${V.eventos.length} eventos (máx. 1000). Cursor #${V.cursor ?? "—"}. Pulsa uno para ver todos sus datos.` : "";
+}
+function abrirEvento(seq) {
+  const ev = V.porSeq.get(seq) || (RF.porSeq || new Map()).get(seq); if (!ev) return;
+  abrirCajon(esc(NOMBRE_EV[ev.tipo] || ev.tipo), `<span class="chip ${claseEv(ev)}">${esc(ev.estado || "")}</span>`);
+  const limpio = Object.fromEntries(Object.entries(ev).filter(([k]) => !k.startsWith("_")));
+  cuerpoCajon(dl([["Mercado", `${ev.lado ? esc(ladoTxt(ev.lado)) : ""} ${esc(ev.moneda || "—")}`], ["Estrategia", desc(esc(ev.estrategia || ""))],
+      ["Fuente", desc(esc(ev.fuente || ""))], ["Hora del exchange", ev.ts_exchange ? horaS(ev.ts_exchange) : desc(null)],
+      ["Recibido / procesado", `${horaS(ev.ts_recepcion)} · ${horaS(ev.ts_proceso)}`],
+      ["Precio de referencia", ev.precio_ref ? `${n(ev.precio_ref.valor, 4)} (${esc(ev.precio_ref.tipo)})` : desc(null)],
+      ["Tamaño / riesgo", `${ev.tam != null ? n(ev.tam, 4) : "—"} · ${usd(ev.riesgo_usd)}`], ["Frescura", ev.frescura_seg != null ? n(ev.frescura_seg, 1) + " s" : desc(null)],
+      ["Detalle", esc(ev.detalle || "—")]])
+    + (ev.trade_id ? `<p><button class="primario" data-accion="abrirOp" data-arg="${esc(ev.trade_id)}">Ver la operación completa</button></p>` : "")
+    + `<h3>Datos del evento</h3><pre class="mono" style="white-space:pre-wrap;background:var(--sup);padding:12px;border-radius:8px;color:var(--suave)">${esc(JSON.stringify(limpio, null, 2))}</pre>`);
+}
+function pintarEstadoVivo() {
+  const c = $("v-conexion");
+  if (!V.conectado) { c.className = "pildora rojo"; c.innerHTML = '<span class="p"></span>Desconectado · reintentando'; }
+  else if (V.pausado) { c.className = "pildora ambar"; c.innerHTML = `<span class="p"></span>En pausa · ${V.pendientes} nuevos`; }
+  else if (V.modo === "sse") { c.className = "pildora verde vivo"; c.innerHTML = '<span class="p"></span>En vivo'; }
+  else { c.className = "pildora azul"; c.innerHTML = '<span class="p"></span>Sondeo cada 3 s'; }
+  $("v-ultimo").textContent = V.ultimoEv ? `último evento hace ${hace(Date.now() / 1000 - V.ultimoEv.ts_proceso)}` : "aún sin eventos";
+  $("v-bot").textContent = V.botAntiguedad != null ? `· bot: datos de hace ${hace(V.botAntiguedad)}` : "· bot: sin datos";
+  const lat = V.latencias.slice().sort((a, b) => a - b);
+  $("v-latencia").textContent = lat.length ? `· latencia observada: mediana ${n(lat[lat.length >> 1], 1)} s` : "";
+  const ob = $("v-obsoleto"), obs = V.botAntiguedad == null || V.botAntiguedad > 120;
+  ob.style.display = obs ? "" : "none";
+  ob.textContent = V.botAntiguedad == null ? "El bot no ha escrito datos: lo que ves puede no estar al día." :
+    `DATOS OBSOLETOS: el bot no actualiza desde hace ${hace(V.botAntiguedad)}. Nada de lo mostrado es una señal activa.`;
+}
+/* resumen: últimos eventos relevantes (sondeo ligero) */
+const RF = {cursor: null, eventos: [], porSeq: new Map()};
+async function cargarResumenFeed() {
+  const p = new URLSearchParams({limite: "40", tipo: ["senal_detectada", "decision_aprobada", "decision_rechazada", "entrada", "salida", "cierre", "stop_movido",
+    "ballena_fill", "liquidacion_inferida", "alerta", "error"].join(",")});
+  try { const r = await (await fetch("/api/feed?" + p, {cache: "no-store"})).json();
+    RF.eventos = r.eventos.slice(-8).reverse(); RF.porSeq = new Map(r.eventos.map(e => [e.seq, e])); } catch (e) { return; }
+  $("r-feed").innerHTML = RF.eventos.length ? RF.eventos.map(ev => `<div class="ev-mini" data-accion="abrirEvento" data-arg="${esc(ev.seq)}" data-num="1">
+    <span class="tenue" style="font-size:12px">${new Date(ev.ts_proceso * 1000).toLocaleTimeString("es-ES", {hour: "2-digit", minute: "2-digit"})}</span>
+    <span><span class="chip ${claseEv(ev)}">${esc(NOMBRE_EV[ev.tipo] || ev.tipo)}</span> ${ev.lado === "L" || ev.lado === "S" ? lado(ev.lado) : ""} <span class="moneda">${esc(ev.moneda || "")}</span>
+      <span class="tenue" style="font-size:12px">${esc(ev.estrategia || "")}</span>
+      ${ev.detalle ? `<div class="sub" style="color:var(--suave);font-size:12px;margin-top:2px">${esc(String(ev.detalle).slice(0, 110))}</div>` : ""}</span></div>`).join("")
+    : '<div class="vacio">Todavía no hay movimientos. El bot evalúa las señales al cierre de cada vela.</div>';
+}
+function cuentaAtras(seg) { return `${String(Math.floor(seg / 3600)).padStart(2, "0")}:${String(Math.floor(seg % 3600 / 60)).padStart(2, "0")}:${String(Math.floor(seg % 60)).padStart(2, "0")}`; }
+function pintarVelasYCobertura(b) {
+  const ve = (b.motor || {}).velas || {};
+  $("v-velas").innerHTML = Object.keys(ve).length ? Object.entries(ve).map(([iv, v]) =>
+    `<div class="kpi"><div class="e">Velas de ${esc(iv)}</div><div class="v cuenta-atras" data-cierre="${v.proximo_cierre_ts || ""}">—</div>
+      <div class="s">hasta el cierre (+${v.margen_tras_cierre_s ?? 20} s de margen)</div>
+      <div class="s">última: ${hora(v.ultima_cerrada_cierra_ts)} · evaluada: ${v.evaluada_ts ? horaS(v.evaluada_ts) : "desconocido"}${v.monedas_evaluadas != null ? ` · ${v.monedas_evaluadas} monedas` : ""}</div></div>`).join("")
+    : '<div class="vacio">El motor aún no ha evaluado ninguna vela.</div>';
+  const cb = b.cobertura_ballenas || {};
+  $("v-cobertura").innerHTML = cb.elegidas == null ? '<div class="vacio">Sin datos.</div>' : `<div class="mini-kpis">
+      ${mini("Elegidas", cb.elegidas)}${mini("En tiempo real", `${cb.suscritas_tiempo_real} / ${cb.limite_tiempo_real}`)}${mini("Frescas", cb.frescas)}${mini("Fills recibidos", cb.fills_ws_recibidos ?? 0)}</div>
+    <p class="nota">${esc(cb.nota || "")} Hyperliquid admite como mucho 10 cuentas en tiempo real por IP.</p>`;
+  $("v-flujo").innerHTML = barrasUsd(cb.flujo_1h_usd || {}, "Sin cambios relevantes en la última hora.");
+  tickCuentas();
+}
+function barrasUsd(obj, vacio) {
+  const ent = Object.entries(obj); if (!ent.length) return `<div class="vacio">${esc(vacio)}</div>`;
+  const m = Math.max(...ent.map(([, v]) => Math.abs(v)), 1);
+  return `<div class="barras-h">${ent.map(([k, v]) => { const w = Math.abs(v) / m * 50;
+    return `<div class="b"><span class="moneda" style="font-weight:550">${esc(k)}</span><div class="pista"><span class="cero" style="left:50%"></span>
+      <i style="${v >= 0 ? `left:50%;width:${w}%;background:var(--verde)` : `left:${50 - w}%;width:${w}%;background:var(--rojo)`};opacity:.75"></i></div>
+      <span class="num ${signo(v)}">${usdK(v)}</span></div>`; }).join("")}</div>`;
+}
+function tickCuentas() {
+  for (const el of document.querySelectorAll(".cuenta-atras[data-cierre]")) {
+    if (!+el.dataset.cierre) continue;
+    el.textContent = cuentaAtras(Math.max(0, +el.dataset.cierre - Date.now() / 1000));
+  }
+}
+setInterval(() => { tickCuentas(); if (V.conectado || V.es || V.sondeo) pintarEstadoVivo(); }, 1000);
+
+/* ---------------------------------------------------------------- aprendizaje */
+function filaRes(etq, r, extra = "") { return `<tr${extra}>${td(esc(etq))}${td(r.n, "num")}${td(r.n ? r.ganan + " %" : "—", "num")}${td(r.n ? rr(r.media, 3) : "—", "num " + signo(r.media))}${td(r.n ? rr(r.total, 1) : "—", "num " + signo(r.total))}</tr>`; }
+function pintarAprendizaje(a) {
+  const t = a.por_tipo || {};
+  const k = (etq, r, sub) => kpi(etq, r && r.n ? rr(r.media, 3) : "—", r && r.n ? `${r.n} casos · ${r.ganan} % ganan · ${sub}` : sub, "", r && r.n ? signo(r.media) : "");
+  $("a-kpis").innerHTML = k("Operadas por el bot", t.real, "R medio") + k("Descartadas (papel)", t.sombra, "qué habría pasado")
+    + k("Shadow (modelado)", t.shadow, "R medio") + k("Laboratorio", t.backtest, "histórico");
+  $("a-nota").textContent = a.nota || "";
+  const ev = a.evaluacion_filtro || {};
+  const cls = {aporta: "verde", resta: "rojo", no_se_distingue: "ambar", sin_datos: ""}[ev.veredicto] || "";
+  $("a-filtro-eval").innerHTML = ev.aceptadas ? `<p><span class="chip ${cls}" style="font-size:13px;white-space:normal">${esc(ev.texto)}</span></p>`
+    + barrasH({"Habría aceptado": {r_medio: ev.aceptadas.r_medio ?? 0, n: ev.aceptadas.n}, "Habría rechazado": {r_medio: ev.rechazadas.r_medio ?? 0, n: ev.rechazadas.n}})
+    + (ev.ic90 ? `<p class="nota">Diferencia ${rr(ev.diferencia_r, 3)} · intervalo de confianza del 90 %: ${n(ev.ic90[0], 3)} a ${n(ev.ic90[1], 3)} R.</p>` : "")
+    : '<div class="vacio">Aún no hay señales juzgadas.</div>';
+  const pf = Object.entries(a.por_filtro || {}).sort((x, y) => y[1].n - x[1].n);
+  $("a-filtros").innerHTML = pf.length ? `<div class="tabla">${tabla(["Motivo del descarte", "Casos#", "Ganan#", "R medio#", "R total#"], pf.map(([kk, r]) => filaRes(kk, r)))}</div>
+    <p class="nota">Si lo descartado por un motivo acaba saliendo bien en papel, ese filtro quizá sobra.</p>` : '<div class="vacio">Sin descartes cerrados todavía.</div>';
+  const filas = [];
+  for (const [kk, v] of Object.entries(a.por_estrategia || {})) for (const [tt, r] of Object.entries(v)) filas.push(filaRes(`${kk} · ${tt}`, r));
+  $("a-estrategias").innerHTML = tabla(["Estrategia · fuente", "Casos#", "Ganan#", "R medio#", "R total#"], filas);
+  $("a-descartes").innerHTML = tabla(["Fecha", "Mercado", "Estrategia", "Motivo", "Resultado#"], (a.descartes || []).slice(0, 60).map(r =>
+    `<tr class="clic" data-accion="abrirCaso" data-arg="${esc(r.id)}">${td(hora(r.ts))}${td(lado(r.lado) + ` <span class="moneda">${esc(r.moneda)}</span>`)}${td(esc(r.modulo))}
+    ${td(`<span class="sub">${esc((r.motivos_descarte || []).join("; "))}</span>`)}
+    ${td(r.resultado_r == null ? '<span class="chip">abierta</span>' : rr(r.resultado_r), "num " + signo(r.resultado_r))}</tr>`), "Sin descartes todavía.");
+}
+async function abrirCaso(id) {
+  abrirCajon("Caso analizado");
+  let c; try { const r = await fetch("/api/caso?id=" + encodeURIComponent(id), {cache: "no-store"}); c = await r.json(); if (!r.ok) throw 0; }
+  catch (e) { cuerpoCajon('<div class="vacio">Caso no encontrado.</div>'); return; }
+  $("cajon-titulo").innerHTML = `${lado(c.lado)} ${esc(c.moneda || "")} · ${esc(c.modulo || "")}`;
+  $("cajon-etq").innerHTML = `<span class="chip">${esc(c.tipo)}</span>`;
+  const rasgos = Object.entries(c.rasgos || {});
+  cuerpoCajon(`<div class="mini-kpis">${mini("Resultado", c.resultado_r == null ? "abierto" : rr(c.resultado_r), signo(c.resultado_r))}
+      ${mini("Cierre", esc(c.cierre || "—"))}${mini("Entrada", n(c.entrada, 4))}${mini("Abierto", hora(c.ts))}</div>
+    ${(c.motivos_descarte || []).length ? `<h3>Por qué se descartó</h3><ul class="lista">${c.motivos_descarte.map(m => `<li><span class="punto aviso"></span><span>${esc(m)}</span></li>`).join("")}</ul>` : ""}
+    ${rasgos.length ? `<h3>Rasgos de la señal</h3>${dl(rasgos.map(([k, v]) => [k, esc(typeof v === "number" ? n(v, 4) : JSON.stringify(v))]))}` : ""}
+    ${c.trade_id ? `<p><button class="primario" data-accion="abrirOp" data-arg="${esc(c.trade_id)}">Ver la operación en el registro</button></p>` : ""}
+    <h3>Datos del caso</h3><pre class="mono" style="white-space:pre-wrap;background:var(--sup);padding:12px;border-radius:8px;color:var(--suave)">${esc(JSON.stringify(c, null, 2))}</pre>`);
+}
+
+/* ---------------------------------------------------------------- ballenas */
+function pintarBallenas(b) {
+  const bs = b.ballenas || [], cb = b.cobertura_ballenas || {}, cuentas = Object.fromEntries((cb.cuentas || []).map(c => [c.cuenta, c]));
+  const vet = bs.filter(x => x.vetada).length, pred = bs.filter(x => (x.etiqueta || "").startsWith("validada")).length;
+  $("b-kpis").innerHTML = kpi("Ballenas seguidas", bs.length, `${cb.frescas ?? 0} con datos frescos`) + kpi("En tiempo real", `${cb.suscritas_tiempo_real ?? 0} / ${cb.limite_tiempo_real ?? 10}`, "fills al instante")
+    + kpi("Validadas fuera de muestra", pred, "anticipan el precio según el laboratorio") + kpi("Vetadas", vet, "sus señales salieron negativas");
+  $("ballenas").innerHTML = tabla(["Cuenta", "Etiqueta", "Datos", "Señales#", "R medio#", "Laboratorio#", "Posiciones observadas", "Cambio 1 h"], bs.map((x, i) => {
+    const c = cuentas[x.direccion] || {}, pos = Object.entries(c.posicion_observada_usd || {});
+    const pt = x.puntuacion || {};
+    return `<tr class="clic" data-accion="abrirBallena" data-arg="${esc(i)}" data-num="1">${td(`<span class="mono">${esc(x.direccion)}</span>${x.tiempo_real ? ' <span class="chip acento">tiempo real</span>' : ""}<div class="sub">${esc(x.regla)}</div>`)}
+    ${td(x.vetada ? '<span class="chip rojo">vetada</span>' : `<span class="chip ${(x.etiqueta || "").startsWith("validada") ? "verde" : x.etiqueta === "inferencia" ? "ambar" : ""}">${esc(x.etiqueta)}</span>`)}
+    ${td(x.fresca ? `<span class="pos">frescos</span><div class="sub">${hace(c.frescura_seg)}</div>` : '<span class="neg">desactualizados</span>')}
+    ${td(x.casos, "num")}${td(x.r_medio == null ? "—" : rr(x.r_medio), "num " + signo(x.r_medio))}
+    ${td(pt.n ? `${pt.media > 0 ? "+" : ""}${n(pt.media, 2)} ATR<div class="sub">${pt.n} cargas · t ${n(pt.t, 2)}</div>` : "—", "num " + signo(pt.media))}
+    ${td(pos.length ? pos.slice(0, 3).map(([m, v]) => `<span class="chip ${v > 0 ? "verde" : "rojo"}">${esc(m)} ${usdK(v)}</span>`).join(" ") : '<span class="tenue">—</span>')}
+    ${td(esc((x.cambios_1h || []).slice(0, 3).map(c2 => `${c2.moneda} ${usdK(c2.neto_1h_usd)}`).join(" · ")) || '<span class="tenue">—</span>')}</tr>`; }),
+    "No se siguen ballenas (desactivado o sin datos).");
+  $("b-flujo").innerHTML = barrasUsd(cb.flujo_1h_usd || {}, "Sin cambios relevantes en la última hora.");
+  const agg = {};
+  for (const c of cb.cuentas || []) for (const [m, v] of Object.entries(c.posicion_observada_usd || {})) agg[m] = (agg[m] || 0) + v;
+  $("b-expo").innerHTML = barrasUsd(Object.fromEntries(Object.entries(agg).sort((a, c) => Math.abs(c[1]) - Math.abs(a[1])).slice(0, 12)), "Sin posiciones observadas.");
+  pintarExterno(b.contexto_externo || {});
+}
+function pintarExterno(cx) {
+  const usdM = v => v == null ? "—" : "$" + n(v / 1e6, v >= 1e9 ? 0 : 1) + " M";
+  const fh = v => v == null ? "—" : (v > 0 ? "+" : "") + n(v, 4) + " %/h";
+  $("ext-fuentes").innerHTML = Object.entries(cx.fuentes || {}).map(([k, v]) =>
+    ` <span class="chip ${v.estado === "correcto" ? "verde" : v.estado === "fallido" ? "rojo" : ""}" title="${esc(v.detalle || "")}">${esc(k)}: ${esc(v.estado === "correcto" ? "ok" : v.estado === "fallido" ? "no responde" : "sin datos")}</span>`).join("")
+    + (cx.dias_archivados != null ? ` <span class="tenue" style="font-size:12px">${cx.dias_archivados} días archivados</span>` : "");
+  if (cx.activo === false) { $("externo").innerHTML = '<div class="vacio">Desactivado en la configuración (contexto_externo.activo).</div>'; return; }
+  $("externo").innerHTML = tabla(["Mercado", "Precio vs Hyperliquid#", "Funding Hyperliquid#", "Funding Binance/Bybit#", "Diferencia funding#", "Interés abierto externo#", "Cambio OI 1 h#", "Cuota de volumen Hyperliquid#"],
+    (cx.monedas || []).slice(0, 40).map(x => { const fs = x.fuentes || {}, difs = Object.entries(fs).filter(([, v]) => v.dif_precio_pct != null);
+      return `<tr>${td(`<span class="moneda">${esc(x.m)}</span><div class="sub">${esc(Object.keys(fs).join(" · "))}</div>`)}
+      ${td(difs.length ? difs.map(([k, v]) => `${k[0].toUpperCase()} ${pct(v.dif_precio_pct, 3)}`).join("<br>") : "—", "num")}
+      ${td(fh(x.funding_hl_h_pct), "num " + signo(x.funding_hl_h_pct))}${td(fh(x.funding_externo_h_pct), "num " + signo(x.funding_externo_h_pct))}
+      ${td(fh(x.dif_funding_h_pct), "num " + signo(x.dif_funding_h_pct))}${td(usdM(x.oi_externo_usd), "num")}
+      ${td(x.oi_externo_cambio_1h_pct == null ? "—" : pct(x.oi_externo_cambio_1h_pct), "num " + signo(x.oi_externo_cambio_1h_pct))}
+      ${td(x.cuota_hl_volumen_pct == null ? "—" : n(x.cuota_hl_volumen_pct, 1) + " %", "num")}</tr>`; }),
+    cx.ts ? "Ninguna moneda vigilada se encuentra en Binance ni Bybit." : "Aún sin datos: la primera lectura llega a los pocos minutos de arrancar.");
+}
+async function abrirBallena(i) {
+  const b = (D.bot || {}), x = (b.ballenas || [])[i]; if (!x) return;
+  const c = ((b.cobertura_ballenas || {}).cuentas || []).find(k => k.cuenta === x.direccion) || {};
+  abrirCajon(`<span class="mono">${esc(x.direccion)}</span>`, x.vetada ? '<span class="chip rojo">vetada</span>' : `<span class="chip">${esc(x.etiqueta)}</span>`);
+  const pt = x.puntuacion || {}, pos = Object.entries(c.posicion_observada_usd || {});
+  let evs = [];
+  try { const r = await (await fetch("/api/feed?" + new URLSearchParams({q: x.direccion, limite: "40"}), {cache: "no-store"})).json(); evs = r.eventos.reverse(); } catch (e) { /* sin feed */ }
+  for (const e of evs) RF.porSeq.set(e.seq, e);
+  cuerpoCajon(`<div class="mini-kpis">${mini("Señales cerradas", x.casos)}${mini("R medio de sus señales", x.r_medio == null ? "—" : rr(x.r_medio), signo(x.r_medio))}
+      ${mini("Movimiento tras sus cargas", pt.n ? `${pt.media > 0 ? "+" : ""}${n(pt.media, 2)} ATR` : "—", signo(pt.media))}${mini("t laboratorio", pt.n ? n(pt.t, 2) : "—")}
+      ${mini("Datos", x.fresca ? "frescos" : "desactualizados", x.fresca ? "pos" : "neg")}${mini("Tiempo real", x.tiempo_real ? "sí" : "no")}</div>
+    ${dl([["Regla de alta", esc(x.regla)], ["Seguida desde", hora(x.alta_ts)], ["Última lectura", hora(x.actualizada_ts)], ["Fallos seguidos", c.fallos_seguidos ?? 0],
+      ["Laboratorio", pt.n ? `${pt.n} cargas analizadas · media ${n(pt.media, 3)} ATR · t ${n(pt.t, 2)}` : "sin puntuación"]])}
+    <h3>Posición observada (última foto)</h3>${barrasUsd(Object.fromEntries(pos), "No se observan posiciones abiertas.")}
+    <h3>Cambios de la última hora</h3>${barrasUsd(Object.fromEntries((x.cambios_1h || []).map(k => [k.moneda, k.neto_1h_usd])), "Sin cambios relevantes.")}
+    <h3>Actividad reciente en el feed</h3>${evs.length ? evs.map(ev => `<div class="ev-mini" data-accion="abrirEvento" data-arg="${esc(ev.seq)}" data-num="1"><span class="tenue" style="font-size:12px">${hora(ev.ts_proceso)}</span>
+      <span><span class="chip ${claseEv(ev)}">${esc(NOMBRE_EV[ev.tipo] || ev.tipo)}</span> <span class="moneda">${esc(ev.moneda || "")}</span> <span class="sub">${esc(String(ev.detalle || "").slice(0, 90))}</span></span></div>`).join("")
+      : '<div class="vacio">Sin eventos recientes de esta cuenta.</div>'}
+    <p class="nota">Los cambios de posición se INFIEREN comparando fotos; solo los fills por websocket son observados.</p>`);
+}
+
+/* ---------------------------------------------------------------- operaciones (ledger) */
+function paramsOps() {
+  const p = new URLSearchParams();
+  for (const k of ["estado", "estrategia", "moneda", "lado", "origen"]) { const v = $("f-" + k).value; if (v) p.set(k, v); }
+  if ($("f-q").value) p.set("q", $("f-q").value);
+  if ($("f-ejec").checked) p.set("solo_ejecutadas", "1");
+  return p;
+}
+async function cargarOps() {
+  const p = paramsOps(); p.set("pagina", pagina); p.set("por_pagina", 50);
+  const csv = paramsOps(); csv.set("formato", "csv"); $("csv").href = "/api/operaciones?" + csv;
+  try {
+    const r = await (await fetch("/api/operaciones?" + p, {cache: "no-store"})).json();
+    for (const k of ["estrategia", "moneda"]) {
+      const s = $("f-" + k), actual = s.value, vals = (r.valores || {})[k] || [];
+      s.innerHTML = s.options[0].outerHTML + vals.map(v => `<option${v === actual ? " selected" : ""}>${esc(v)}</option>`).join("");
+    }
+    const R = r.resumen || {};
+    $("ops-kpis").innerHTML = kpi("Operaciones cerradas", R.cerradas ?? 0, `${r.total} registros con estos filtros`) + kpi("Resultado neto", usd(R.pnl_neto), "tras comisiones y funding", "pnl_neto", signo(R.pnl_neto))
+      + kpi("R neto medio", R.r_neto_medio == null ? "—" : rr(R.r_neto_medio, 3), "por operación", "r", signo(R.r_neto_medio))
+      + kpi("Ganadoras", R.ganadoras_pct == null ? "—" : n(R.ganadoras_pct, 1) + " %", "el % de acierto solo no dice nada sin el R");
+    $("ops").innerHTML = tabla(["Abierta", "Mercado", "Estrategia", "Origen", "Estado", "Entrada#", "Salida#", "Neto#", "R neto#", "Duración#", "Causa"], r.filas.map(o =>
+      `<tr class="clic" tabindex="0" data-accion="abrirOp" data-arg="${esc(o.trade_id)}" >
+      ${td(hora(o.abierta_ts))}${td(lado(o.lado) + ` <span class="moneda">${esc(o.moneda)}</span>`)}${td(esc(o.estrategia) + (o.version ? ` <span class="tenue">v${esc(o.version)}</span>` : ""))}
+      ${td(`<span class="chip">${esc(o.origen)}</span>`)}${td(esc(o.estado) + (o.n_alertas ? ` <span class="chip ambar">${o.n_alertas}</span>` : ""))}
+      ${td(n(o.precio_medio_entrada, 4), "num")}${td(n(o.precio_medio_salida, 4), "num")}${td(usd(o.pnl_neto), "num " + signo(o.pnl_neto))}
+      ${td(o.r_neto != null ? rr(o.r_neto) : o.r_modelado != null ? rr(o.r_modelado) + ' <span class="tenue">mod.</span>' : "—", "num " + signo(o.r_neto ?? o.r_modelado))}
+      ${td(o.abierta_ts && o.cerrada_ts ? dur(o.cerrada_ts - o.abierta_ts) : "—", "num")}
+      ${td(`<span class="sub">${esc(o.causa_salida || (o.motivos_descarte || []).join("; "))}</span>`)}</tr>`), "No hay operaciones con esos filtros.");
+    $("pag-txt").textContent = `página ${r.pagina} de ${r.paginas}`;
+    $("pag-ant").disabled = r.pagina <= 1; $("pag-sig").disabled = r.pagina >= r.paginas;
+    pintarHistOps(r.filas);
+  } catch (e) { $("ops").innerHTML = '<div class="vacio">No se pudo leer el registro de operaciones.</div>'; }
+}
+function pintarHistOps(filas) {
+  const rs = filas.map(o => o.r_neto ?? o.r_modelado).filter(v => v != null);
+  if (!rs.length) { $("ops-hist").innerHTML = '<div class="vacio">Sin resultados cerrados en esta página.</div>'; $("ops-estr").innerHTML = '<div class="vacio">—</div>'; return; }
+  const cubos = [-3, -2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2, 3, 99], cuenta = new Array(cubos.length).fill(0);
+  for (const v of rs) { let i = cubos.findIndex(c => v < c); if (i < 0) i = cubos.length - 1; cuenta[i]++; }
+  const W = 520, H = 160, bw = W / cubos.length, mx = Math.max(...cuenta, 1);
+  const et = ["<−3", "−3", "−2", "−1,5", "−1", "−0,5", "0", "0,5", "1", "1,5", "2", "≥3"];
+  $("ops-hist").innerHTML = `<svg class="graf" viewBox="0 0 ${W} ${H + 22}">${cuenta.map((c, i) => { const h = c / mx * H;
+    return `<rect x="${i * bw + 3}" y="${H - h}" width="${bw - 6}" height="${h}" rx="3" fill="${cubos[i] <= 0 ? "#f0627d" : "#2fd788"}" opacity=".75"/>
+    ${c ? `<text x="${i * bw + bw / 2}" y="${H - h - 4}" text-anchor="middle">${c}</text>` : ""}<text x="${i * bw + bw / 2}" y="${H + 16}" text-anchor="middle">${et[i]}</text>`; }).join("")}</svg>
+    <p class="nota">${rs.length} resultados de esta página · media ${rr(rs.reduce((a, b) => a + b, 0) / rs.length, 3)}</p>`;
+  const por = {};
+  for (const o of filas) { const v = o.r_neto ?? o.r_modelado; if (v == null) continue; (por[o.estrategia] = por[o.estrategia] || []).push(v); }
+  $("ops-estr").innerHTML = barrasH(Object.fromEntries(Object.entries(por).map(([k, v]) => [k, {r_medio: v.reduce((a, b) => a + b, 0) / v.length, n: v.length}])));
+}
+for (const id of ["f-estado", "f-estrategia", "f-moneda", "f-lado", "f-origen", "f-ejec"]) $(id).addEventListener("change", () => { pagina = 1; cargarOps(); });
+let tq; $("f-q").addEventListener("input", () => { clearTimeout(tq); tq = setTimeout(() => { pagina = 1; cargarOps(); }, 300); });
+$("pag-ant").onclick = () => { pagina--; cargarOps(); }; $("pag-sig").onclick = () => { pagina++; cargarOps(); };
+
+async function abrirOp(id) {
+  abrirCajon("Operación");
+  const r = await fetch("/api/operacion?id=" + encodeURIComponent(id), {cache: "no-store"});
+  if (!r.ok) { cuerpoCajon('<div class="vacio">Operación no encontrada en el registro.</div>'); return; }
+  const o = await r.json(), dec = o.decision || {}, plan = dec.plan || {}, ap = plan.aprendizaje || {};
+  $("cajon-titulo").innerHTML = `${lado(o.lado)} <span class="moneda">${esc(o.moneda)}</span> <span class="tenue" style="font-weight:500">· ${esc(o.estrategia)} ${o.version ? "v" + esc(o.version) : ""}</span>`;
+  $("cajon-etq").innerHTML = `<span class="chip">${esc(o.origen)}</span> <span class="chip ${o.estado === "cerrada" ? "" : "acento"}">${esc(o.estado)}</span>`;
+  const ordenes = Object.values(o.ordenes || {});
+  const rN = o.r_neto ?? o.r_modelado;
+  cuerpoCajon(`
+    ${o.origen === "shadow" ? '<div class="aviso" style="display:block">Resultado MODELADO (shadow): precios reales con costes supuestos; no es una ejecución.</div>' : ""}
+    <div class="mini-kpis">${mini("Resultado neto", usd(o.pnl_neto), signo(o.pnl_neto))}${mini("R neto", rr(rN), signo(rN))}${mini("Riesgo inicial", usd(o.riesgo_inicial_usd))}
+      ${mini("Duración", o.abierta_ts && o.cerrada_ts ? dur((Date.parse(o.cerrada_ts) || o.cerrada_ts * 1000) / 1000 - (Date.parse(o.abierta_ts) || o.abierta_ts * 1000) / 1000) : "—")}</div>
+    <h3>Por qué entró</h3>${dl([["Motivo", esc(o.motivo || "—")], ["Precio de referencia", n(o.precio_referencia, 4)],
+      ["Decisión", dec.aprobada ? '<span class="pos">aprobada</span>' : `<span class="neg">rechazada</span> ${esc((dec.motivos || []).join("; "))}`],
+      ["Aprendizaje", ap.n != null ? `${ap.abrir ? "aceptaría" : "rechazaría"} · ${ap.n} casos parecidos · R esperado ${rr(ap.r_esperado, 3)}` : undefined],
+      ["Parámetros", `<span class="mono">${esc(JSON.stringify(o.parametros || {}))}</span>`],
+      ["Tamaño previsto", `${n(plan.tam, 4)} · apalancamiento ${esc(plan.apalancamiento ?? "—")} · riesgo ${usd(plan.riesgo_usd)}`],
+      ["Duración máxima", plan.duracion_min ? `${n(plan.duracion_min / 60, 1)} h` : "—"]])}
+    <h3>Ejecución y resultado</h3>${dl([["Entrada media", n(o.precio_medio_entrada, 4)], ["Salida media", n(o.precio_medio_salida, 4)],
+      ["Tamaño ejecutado", n(o.tam_entrada, 4)], ["Stop inicial / actual", `${n(o.stop_inicial, 4)} / ${n(o.stop_actual, 4)}`, "stop_mark"],
+      ["Deslizamiento de entrada", o.deslizamiento_entrada_pct == null ? "—" : n(o.deslizamiento_entrada_pct, 3) + " %", "deslizamiento"],
+      ["Resultado bruto", usd(o.pnl_bruto)], ["Comisiones", usd(o.comisiones) + (o.comisiones_estimadas ? ' <span class="tenue">(estimadas)</span>' : "")],
+      ["Funding", usd(o.funding_total), "funding"], ["Resultado neto", `<b class="${signo(o.pnl_neto)}">${usd(o.pnl_neto)}</b>`, "pnl_neto"],
+      ["R bruto / neto", `${n(o.r_bruto, 2)} / ${n(o.r_neto, 2)}`, "r"], ["Causa de salida", esc(o.causa_salida || "—")],
+      ["R modelado (shadow)", o.r_modelado == null ? undefined : n(o.r_modelado, 2)]])}
+    ${(o.alertas || []).length ? `<h3>Alertas</h3><ul class="lista">${o.alertas.map(a => `<li><span class="punto ${esc(a.severidad)}"></span><span>${esc(a.mensaje)} <span class="tenue">${hora(a.ts)}</span></span></li>`).join("")}</ul>` : ""}
+    <h3>Órdenes</h3><div class="tabla">${tabla(["Rol", "CLOID / oid", "Tamaño#", "Precio#", "Estado"], ordenes.map(x => `<tr>${td(esc(x.rol))}
+      ${td(`<span class="mono tenue">${esc((x.cloid || "").slice(0, 10))}…</span> ${esc(x.oid ?? "")}`)}${td(n(x.sz, 4), "num")}${td(n(x.trigger || x.px, 4), "num")}
+      ${td(`<span class="chip">${esc(x.estado)}</span>`)}</tr>`), "Sin órdenes.")}</div>
+    <h3>Fills</h3><div class="tabla">${tabla(["Hora", "Rol", "Precio#", "Tamaño#", "Comisión#"], [...(o.fills_entrada || []), ...(o.fills_salida || [])].map(f => `<tr>
+      ${td(hora(f.ts))}${td(esc(f.rol))}${td(n(f.px, 4), "num")}${td(n(f.sz, 4), "num")}${td(usd(f.comision), "num")}</tr>`), "Sin fills.")}</div>
+    ${(o.trailing || []).length ? `<h3>Movimientos del stop</h3><div class="tabla">${tabla(["Hora", "De#", "A#", "Motivo"], o.trailing.map(t => `<tr>${td(hora(t.ts))}${td(n(t.de, 4), "num")}${td(n(t.a, 4), "num")}${td(esc(t.motivo))}</tr>`))}</div>` : ""}
+    <h3>Cronología completa</h3><ul class="tl">${(o.eventos || []).map(e => `<li onclick="this.classList.toggle('abierto')" tabindex="0"
+      onkeydown="if(event.key==='Enter')this.classList.toggle('abierto')"><span class="tenue">${hora(e.ts)}</span> <b>${esc(e.tipo)}</b>
+      <span class="suave">${esc(e.rol || e.accion || e.causa || e.estado || "")}</span><pre>${esc(JSON.stringify(e, null, 1))}</pre></li>`).join("")}</ul>
+    <p class="nota mono">${esc(o.trade_id)}</p>`);
+}
+
+/* ---------------------------------------------------------------- observabilidad */
+async function cargarObs() {
+  if ($("o-pausa").checked) return;
+  const p = new URLSearchParams();
+  if ($("o-nivel").value) p.set("nivel", $("o-nivel").value);
+  if ($("o-comp-f").value) p.set("componente", $("o-comp-f").value);
+  if ($("o-traza").value) p.set("traza", $("o-traza").value);
+  if ($("o-q").value) p.set("q", $("o-q").value);
+  let o;
+  try { o = await (await fetch("/api/observabilidad?" + p, {cache: "no-store"})).json(); }
+  catch (e) { $("o-kpis").innerHTML = '<div class="vacio">Sin conexión con el panel.</div>'; return; }
+  const s = o.sistema || {}, pr = s.proceso || {}, c = s.contadores || {};
+  const est = s.estado_global || pr.estado || "sin_datos";
+  $("o-kpis").innerHTML = [
+    kpi("Estado general", `<span class="est ${esc(est)}" style="font-size:13px">${esc(est.replace("_", " "))}</span>`, `${esc(s.modo || "")} · config v${esc(s.version_config ?? "?")} · código ${esc(s.version_codigo || "?")}`
+      + ((s.obligatorios_sin_datos || []).length ? `<br>sin datos: ${esc(s.obligatorios_sin_datos.join(", "))}` : "")
+      + ((s.obligatorios_fallidos || []).length ? `<br>fallidos: ${esc(s.obligatorios_fallidos.join(", "))}` : "")),
+    kpi("Latido", o.latido_antiguedad_seg == null ? "—" : "hace " + hace(o.latido_antiguedad_seg), "último ciclo correcto " + hora(s.ultimo_ciclo_ok_ts), "latido"),
+    kpi("Ciclo (mediana / p95)", `${n(s.ciclo_mediana_seg, 1)} / ${n(s.ciclo_p95_seg, 1)} s`, `${s.ciclos ?? 0} ciclos · ${s.ciclos_fallidos ?? 0} fallidos`, "ciclo_p95"),
+    kpi("Proceso", `${hace(pr.activo_seg)}`, `en marcha · reinicios ${pr.reinicios ?? 0} · Python ${esc(pr.python || "?")}`),
+    kpi("Contadores", `${c.reintentos_429 ?? 0} · ${c.esperas_limite ?? 0} · ${c.reconexiones_ws ?? 0}`, `429 · esperas · reconexiones · ${c.errores_api ?? 0} errores API`, "contadores"),
+    kpi("Disco libre", s.disco ? `${n(s.disco.libre_gb, 1)} GB` : "—", s.disco ? `de ${n(s.disco.total_gb, 0)} GB` : ""),
+  ].join("");
+  $("o-comp").innerHTML = Object.entries(s.componentes || {}).map(([k, v]) => `<div class="comp"><div class="nom"><span>${esc(v.descripcion || k)}</span>
+    <span class="est ${esc(v.estado)}">${esc(v.estado.replace("_", " "))}</span></div><div class="det">${esc(v.detalle)}</div>
+    <div class="det">${v.ts ? "informó " + hora(v.ts) : "nunca ha informado"}${v.latencia_ms != null ? ` · ${v.latencia_ms} ms` : ""}</div></div>`).join("")
+    || '<div class="vacio">El bot aún no ha escrito su estado.</div>';
+  $("o-inc").innerHTML = tabla(["Componente", "Severidad", "Mensaje", "Veces#", "Desde", "Último", "Estado", ""], (o.incidentes || []).slice(0, 50).map(i => `<tr>
+    ${td(esc(i.componente))}${td(`<span class="chip ${i.severidad === "error" ? "rojo" : i.severidad === "aviso" ? "ambar" : ""}">${esc(i.severidad)}</span>`)}
+    ${td(`${esc(i.mensaje)}<div class="sub" style="white-space:normal">${esc(i.explicacion)} ${esc(i.recomendacion)}</div>`)}
+    ${td(i.repeticiones, "num")}${td(hora(i.primer_ts))}${td(hora(i.ultimo_ts))}${td(esc(i.estado))}
+    ${td(i.estado === "activo" && !SOLO_LECTURA ? `<button class="mini" data-accion="reconocer" data-arg="${esc(i.id)}">Reconocer</button>` : "")}</tr>`), "Sin incidentes.");
+  const sel = $("o-comp-f"), actual = sel.value;
+  sel.innerHTML = sel.options[0].outerHTML + (o.componentes_log || []).map(c2 => `<option${c2 === actual ? " selected" : ""}>${esc(c2)}</option>`).join("");
+  $("o-logs").innerHTML = (o.logs || []).map(e => `<div class="log ${esc(e.nivel)}${e.detalle ? " detalle" : ""}" ${e.detalle ? 'onclick="this.classList.toggle(\'abierto\')"' : ""}>
+    <span class="tenue">${hora(e.ts)}</span><span class="nv ${esc(e.nivel)}">${esc(e.nivel)}</span><span class="suave">${esc(e.componente)}</span>
+    <span>${esc(e.mensaje)}${e.traza ? ` <a href="#" data-accion="verTraza" data-arg="${esc(e.traza)}" class="tenue">${esc(e.traza)}</a>` : ""}</span>
+    ${e.detalle ? `<pre>${esc(e.detalle)}</pre>` : ""}</div>`).join("") || '<div class="vacio">Sin registros con esos filtros.</div>';
+}
+for (const id of ["o-nivel", "o-comp-f"]) $(id).addEventListener("change", cargarObs);
+let to; for (const id of ["o-traza", "o-q"]) $(id).addEventListener("input", () => { clearTimeout(to); to = setTimeout(cargarObs, 300); });
+
+/* ---------------------------------------------------------------- configuración (editor) */
+const C = {esq: null, seccion: "monedas", cambios: {}, puede: false};
+async function cargarConfig(forzar = false) {
+  if (C.esq && !forzar) { pintarEditor(); return; }
+  try { C.esq = await (await fetch("/api/config", {cache: "no-store"})).json(); } catch (e) { $("c-seccion").innerHTML = '<div class="vacio">No se pudo leer la configuración.</div>'; return; }
+  C.puede = !!C.esq.puede_editar && !SOLO_LECTURA;
+  $("c-ro").style.display = C.puede ? "none" : "";
+  $("c-aviso").textContent = C.esq.aviso || "";
+  if (!C.esq.secciones.some(s => s.id === C.seccion)) C.seccion = C.esq.secciones[0].id;
+  pintarEditor();
+}
+function campoPorRuta(r) { return C.esq.campos.find(c => c.ruta === r); }
+function valorActual(c) { return c.ruta in C.cambios ? C.cambios[c.ruta] : c.valor; }
+function igual(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function pintarEditor() {
+  const E = C.esq; if (!E) return;
+  const cnt = s => E.campos.filter(c => c.seccion === s && c.ruta in C.cambios).length;
+  $("c-nav").innerHTML = E.secciones.map(s => `<button class="${s.id === C.seccion ? "act" : ""}" data-accion="irSeccion" data-arg="${esc(s.id)}">${esc(s.titulo)}${cnt(s.id) ? ` <span class="cuenta azul">${cnt(s.id)}</span>` : ""}</button>`).join("");
+  const sec = E.secciones.find(s => s.id === C.seccion) || E.secciones[0];
+  const campos = E.campos.filter(c => c.seccion === sec.id);
+  $("c-seccion").innerHTML = `<div class="tarj-cab"><h2>${esc(sec.titulo)}</h2></div><p class="nota" style="margin:-4px 0 14px">${esc(sec.texto)}</p>
+    <div class="campos">${campos.map(htmlCampo).join("") || '<div class="vacio">Sin campos.</div>'}</div>`;
+  for (const c of campos) conectarCampo(c);
+  $("bc-n").textContent = Object.keys(C.cambios).length;
+  $("barra-cambios").classList.toggle("visible", Object.keys(C.cambios).length > 0);
+}
+function idCampo(c) { return "cf-" + c.ruta.replace(/[^a-zA-Z0-9]/g, "_"); }
+function htmlCampo(c) {
+  const v = valorActual(c), dis = C.puede ? "" : "disabled", id = idCampo(c), cambiado = c.ruta in C.cambios;
+  const antes = cambiado ? `<span class="antes">antes: ${esc(fmtValor(c, c.valor))}</span>` : "";
+  let ctrl = "";
+  if (c.tipo === "bool") ctrl = `<label class="interruptor"><input type="checkbox" id="${id}" ${v ? "checked" : ""} ${dis}><span></span></label><span class="suave">${v ? "sí" : "no"}</span>`;
+  else if (c.tipo === "num" || c.tipo === "int") ctrl = `<input type="number" id="${id}" value="${esc(v ?? "")}" ${c.min != null ? `min="${c.min}"` : ""} ${c.max != null ? `max="${c.max}"` : ""} step="${c.paso || (c.tipo === "int" ? 1 : "any")}" ${dis}><span class="unidad">${esc(c.unidad || "")}</span>
+    ${c.unidad === "USD" && v != null ? `<span class="tenue" style="font-size:11.5px">= ${usdK(+v).replace("+", "")}</span>` : c.min != null || c.max != null ? `<span class="tenue" style="font-size:11.5px">${c.min ?? ""} – ${c.max ?? ""}</span>` : ""}`;
+  else if (c.tipo === "opcion") ctrl = `<select id="${id}" ${dis}>${c.opciones.map(o => `<option${o === v ? " selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
+  else if (c.tipo === "multi") ctrl = c.opciones.map(o => `<label class="suave" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-m="${esc(o)}" class="${id}" ${(v || []).includes(o) ? "checked" : ""} ${dis}> ${esc(o)}</label>`).join("");
+  else if (c.tipo === "monedas") ctrl = `<div style="display:flex;flex-direction:column;gap:8px;width:100%"><div class="chips">${(v || []).map(m => `<span class="chip">${esc(m)}<button ${dis} data-accion="quitarMoneda" data-arg="${esc(c.ruta)}" data-arg2="${esc(m)}" aria-label="Quitar ${esc(m)}">×</button></span>`).join("") || '<span class="tenue">ninguna</span>'}</div>
+    <div style="display:flex;gap:6px"><input id="${id}" list="lista-mercados" placeholder="Añadir mercado (p. ej. SOL)" ${dis} style="flex:1"><button ${dis} data-accion="anadirMoneda" data-arg="${esc(c.ruta)}">Añadir</button></div></div>`;
+  else if (c.tipo === "direcciones") {
+    const cam = C.cambios[c.ruta] || {quitar: [], anadir: []};
+    ctrl = `<div style="display:flex;flex-direction:column;gap:8px;width:100%"><div class="chips">${(c.valor || []).filter(x => !cam.quitar.includes(x.i)).map(x => `<span class="chip"><span class="mono">${esc(x.direccion)}</span><button ${dis} data-accion="quitarDireccion" data-arg="${esc(x.i)}" data-num="1" aria-label="Quitar">×</button></span>`).join("")}
+      ${cam.anadir.map((a, i) => `<span class="chip acento"><span class="mono">${esc(a.slice(0, 6) + "…" + a.slice(-4))}</span><button ${dis} data-accion="deshacerDireccion" data-arg="${esc(i)}" data-num="1">×</button></span>`).join("")}
+      ${!(c.valor || []).length && !cam.anadir.length ? '<span class="tenue">ninguna</span>' : ""}</div>
+      <div style="display:flex;gap:6px"><input id="${id}" placeholder="0x… (dirección pública de Hyperliquid)" ${dis} style="flex:1" autocomplete="off"><button ${dis} onclick="anadirDireccion()">Añadir</button></div></div>`;
+  }
+  const ancho = c.tipo === "monedas" || c.tipo === "direcciones";
+  return `<div class="campo${cambiado ? " cambiado" : ""}${ancho ? " ancho" : ""}"><div class="et">${esc(c.etiqueta)}${c.riesgo ? ' <span class="chip" title="Afecta al riesgo">riesgo</span>' : ""}${antes}</div>
+    ${c.ayuda ? `<div class="ay">${esc(c.ayuda)}</div>` : ""}<div class="ctrl" style="flex-wrap:wrap">${ctrl}</div></div>`;
+}
+function fmtValor(c, v) {
+  if (c.tipo === "bool") return v ? "sí" : "no";
+  if (Array.isArray(v)) return v.map(x => typeof x === "object" ? x.direccion : x).join(", ") || "ninguna";
+  if (v == null) return "—";
+  return String(v) + (c.unidad ? " " + c.unidad : "");
+}
+function marcar(c, valor) {
+  if (igual(valor, c.valor)) delete C.cambios[c.ruta]; else C.cambios[c.ruta] = valor;
+  pintarEditor();
+}
+function conectarCampo(c) {
+  const id = idCampo(c);
+  if (c.tipo === "bool") $(id).addEventListener("change", e => marcar(c, e.target.checked));
+  else if (c.tipo === "num" || c.tipo === "int") $(id).addEventListener("change", e => { const t = e.target.value.trim(); if (t === "") return; marcar(c, Number(t)); });
+  else if (c.tipo === "opcion") $(id).addEventListener("change", e => marcar(c, e.target.value));
+  else if (c.tipo === "multi") for (const el of document.querySelectorAll("." + id)) el.addEventListener("change", () =>
+    marcar(c, [...document.querySelectorAll("." + id)].filter(x => x.checked).map(x => x.dataset.m)));
+  else if (c.tipo === "monedas") $(id).addEventListener("keydown", e => { if (e.key === "Enter") anadirMoneda(c.ruta); });
+  else if (c.tipo === "direcciones") $(id).addEventListener("keydown", e => { if (e.key === "Enter") anadirDireccion(); });
+}
+function anadirMoneda(ruta) {
+  const c = campoPorRuta(ruta), el = $(idCampo(c)), m = el.value.trim(); if (!m) return;
+  if (!/^[A-Za-z0-9][A-Za-z0-9:_\-]{0,23}$/.test(m)) { mostrarAviso("Nombre de mercado no válido.", "error"); return; }
+  const conocidas = C.esq.monedas_conocidas || [];
+  const exacta = conocidas.find(x => x.toLowerCase() === m.toLowerCase());
+  if (conocidas.length && !exacta) mostrarAviso(`Aviso: «${m}» no aparece entre los mercados que el bot conoce de Hyperliquid; si no existe, se ignorará.`);
+  const v = (valorActual(c) || []).slice(); const nombre = exacta || m.toUpperCase();
+  if (!v.includes(nombre)) v.push(nombre);
+  marcar(c, v);
+}
+function quitarMoneda(ruta, m) { const c = campoPorRuta(ruta); marcar(c, (valorActual(c) || []).filter(x => x !== m)); }
+function camDir() { const c = campoPorRuta("ballenas_manuales"); return {c, cam: C.cambios["ballenas_manuales"] ? JSON.parse(JSON.stringify(C.cambios["ballenas_manuales"])) : {quitar: [], anadir: []}}; }
+function fijarDir(c, cam) { if (!cam.quitar.length && !cam.anadir.length) delete C.cambios[c.ruta]; else C.cambios[c.ruta] = cam; pintarEditor(); }
+function anadirDireccion() {
+  const {c, cam} = camDir(), el = $(idCampo(c)), d = el.value.trim();
+  if (!/^0x[0-9a-fA-F]{40}$/.test(d)) { mostrarAviso("Dirección no válida: debe ser 0x seguido de 40 caracteres hexadecimales.", "error"); return; }
+  if (!cam.anadir.map(x => x.toLowerCase()).includes(d.toLowerCase())) cam.anadir.push(d);
+  fijarDir(c, cam);
+}
+function quitarDireccion(i) { const {c, cam} = camDir(); if (!cam.quitar.includes(i)) cam.quitar.push(i); fijarDir(c, cam); }
+function deshacerDireccion(i) { const {c, cam} = camDir(); cam.anadir.splice(i, 1); fijarDir(c, cam); }
+function descartarCambios() { C.cambios = {}; pintarEditor(); }
+async function revisarCambios() {
+  const r = await post("/api/config", {cambios: C.cambios});
+  if (!r.ok) { mostrarAviso("No se puede guardar: " + (r.error || "error"), "error"); return; }
+  const lst = r.cambios || [];
+  $("d-config-cuerpo").innerHTML = `${r.sube_riesgo ? '<div class="aviso" style="display:block;border-color:rgba(243,189,85,.5)">⚠ Alguno de estos cambios <b>aumenta el riesgo</b>. Revísalo con calma.</div>' : ""}
+    <ul class="dif">${lst.map(x => `<li class="${x.sube_riesgo ? "riesgo" : ""}"><b>${esc(x.etiqueta)}</b> <span class="tenue">(${esc(x.ruta)})</span><br>
+      <span class="suave">${esc(Array.isArray(x.antes) ? x.antes.join(", ") || "—" : JSON.stringify(x.antes))}</span><span class="flecha">→</span><b>${esc(Array.isArray(x.despues) ? x.despues.join(", ") || "—" : JSON.stringify(x.despues))}</b>
+      ${x.sube_riesgo ? ' <span class="chip ambar">sube el riesgo</span>' : ""}</li>`).join("")}</ul>
+    <p class="nota">Al guardar se hace una copia de la configuración actual, el bot la valida otra vez y se reinicia de forma ordenada (unos segundos;
+      las posiciones conservan sus stops). Cambiar algo que decide invalida las aprobaciones y la evidencia acumulada con la configuración anterior.</p>`;
+  $("d-config-ok").disabled = false;
+  $("d-config").showModal();
+}
+async function guardarCambios() {
+  $("d-config-ok").disabled = true;
+  const r = await post("/api/config", {cambios: C.cambios, confirmar: true});
+  $("d-config").close();
+  if (!r.ok) { mostrarAviso("No se guardó: " + (r.error || "error"), "error"); return; }
+  C.cambios = {}; C.esq = null;
+  mostrarAviso("Guardado. Esperando a que el bot valide y aplique la configuración…");
+  await esperarResultado(r.id, 45);
+  cargarConfig(true);
+}
+async function verHistorial() {
+  abrirCajon("Historial de cambios de configuración");
+  let h; try { h = (await (await fetch("/api/config/historial", {cache: "no-store"})).json()).cambios; } catch (e) { cuerpoCajon('<div class="vacio">No disponible.</div>'); return; }
+  cuerpoCajon(h.length ? h.map(f => `<div class="tarj" style="margin-bottom:10px"><div class="tarj-cab" style="margin-bottom:6px"><b>${hora(f.ts)}</b><span class="chip">${esc(f.origen)}</span>
+      <div class="der">${f.copia_disponible && C.puede ? `<button class="mini" data-accion="restaurarCopia" data-arg="${esc(f.copia_anterior)}">Volver a lo de antes</button>` : ""}</div></div>
+      <div class="sub tenue" style="margin-bottom:6px">${esc(f.motivo)}</div>
+      <ul class="dif" style="margin:0">${(f.cambios || []).map(x => `<li><b>${esc(x.etiqueta)}</b>: <span class="suave">${esc(JSON.stringify(x.antes))}</span><span class="flecha">→</span>${esc(JSON.stringify(x.despues))}</li>`).join("")}</ul></div>`).join("")
+    : '<div class="vacio">Todavía no se ha cambiado nada desde el panel.</div>');
+}
+async function restaurarCopia(nombre) {
+  if (!confirmar2(`¿Restaurar la configuración que había antes de este cambio (${nombre})? El bot se reiniciará para aplicarla.`)) return;
+  const r = await post("/api/config/restaurar", {copia: nombre});
+  cerrarCajon();
+  if (!r.ok) { mostrarAviso("No se restauró: " + (r.error || "error"), "error"); return; }
+  C.esq = null; mostrarAviso("Copia restaurada. Esperando a que el bot la aplique…");
+  await esperarResultado(r.id, 45); cargarConfig(true);
+}
+function confirmar2(t) { return window.confirm(t); }
+function pintarConfigEfectiva(b) {
+  const ef = b.efectiva || {};
+  $("c-efectiva").innerHTML = tabla(["Clave", "Valor", "Fuente"], Object.entries(ef.riesgo || {}).map(([k, v]) =>
+    `<tr>${td(esc(k))}${td(`<span class="mono">${esc(JSON.stringify(v))}</span>`, "num")}${td(`<span class="sub">${esc((ef.fuente || {})[k] || "")}</span>`)}</tr>`));
+  const dlm = document.getElementById("lista-mercados");
+  const lista = b.mercados_disponibles || (b.motor || {}).monedas || [];
+  if (dlm && dlm.childElementCount !== lista.length) dlm.innerHTML = lista.map(m => `<option value="${esc(m)}">`).join("");
+}
+
+/* ---------------------------------------------------------------- comandos */
+async function post(ruta, cuerpo) {
+  try {
+    const r = await fetch(ruta, {method: "POST", headers: {"Content-Type": "application/json", "X-Panel-Token": TOKEN}, body: JSON.stringify(cuerpo)});
+    let j = {}; try { j = await r.json(); } catch (e) { /* vacío */ }
+    return {ok: r.ok && j.ok !== false, ...j};
+  } catch (e) { return {ok: false, error: "sin conexión con el panel"}; }
+}
+async function esperarResultado(id, intentos = 20) {
+  for (let i = 0; i < intentos; i++) {
+    await new Promise(z => setTimeout(z, 2000));
+    try { const res = await (await fetch("/api/resultado?id=" + id, {cache: "no-store"})).json();
+      if (!res.pendiente) { mostrarAviso((res.ok ? "✓ " : "✗ ") + res.mensaje, res.ok ? "ok" : "error"); setTimeout(() => mostrarAviso(""), 10000); cargar(); return res; } }
+    catch (e) { /* el bot puede estar reiniciándose */ }
+  }
+  mostrarAviso("El bot no ha confirmado todavía (¿está en marcha?).");
+}
+async function comando(cmd, extra = {}) {
+  const r = await post("/api/comando", {cmd, ...extra});
+  if (!r.ok) { mostrarAviso("No se envió: " + (r.error || "error"), "error"); return; }
+  mostrarAviso("Enviado al bot. Esperando su confirmación…");
+  await esperarResultado(r.id);
+}
+function pedirCierre() {
+  alcanceCierre = ((D || {}).bot || {}).posiciones?.map(p => p.moneda).sort() || [];
+  $("d-cierre-alcance").textContent = alcanceCierre.length ? "Se cerrarán: " + alcanceCierre.join(", ") : "El bot no tiene posiciones abiertas.";
+  $("d-cierre-txt").value = ""; $("d-cierre").showModal();
+}
+function confirmarCierre() {
+  const txt = $("d-cierre-txt").value.trim();
+  $("d-cierre").close();
+  if (txt !== "CERRAR-BOT") { mostrarAviso("Cancelado: la confirmación no coincide."); return; }
+  comando("/cerrarbot", {confirmacion: txt, alcance: alcanceCierre});
+}
+async function reconocer(id) { const r = await post("/api/incidente", {id}); if (r.ok) cargarObs(); else mostrarAviso(r.error || "No se pudo.", "error"); }
+window.addEventListener("beforeunload", e => { if (Object.keys(C.cambios).length) { e.preventDefault(); e.returnValue = ""; } });
+
+
+/* ---------------------------------------------------------------- acciones (sin manejadores inline: los datos van
+   en atributos data-* escapados para HTML y nunca se interpretan como código) */
+const ACCIONES_PERMITIDAS = ["abrirOp", "abrirEstrategia", "abrirEvento", "abrirCaso", "abrirBallena", "reconocer",
+  "quitarMoneda", "anadirMoneda", "quitarDireccion", "deshacerDireccion", "restaurarCopia", "verTraza", "irSeccion"];
+function verTraza(v) { $("o-traza").value = v; cargarObs(); }
+function irSeccion(v) { C.seccion = v; pintarEditor(); }
+function ejecutarAccion(el, ev) {
+  const nombre = el.dataset.accion;
+  if (!ACCIONES_PERMITIDAS.includes(nombre) || typeof window[nombre] !== "function") return;
+  ev.preventDefault();
+  const arg = el.dataset.num ? Number(el.dataset.arg) : el.dataset.arg;
+  if (el.dataset.arg2 !== undefined) window[nombre](arg, el.dataset.arg2); else window[nombre](arg);
+}
+document.addEventListener("click", ev => { const el = ev.target.closest("[data-accion]"); if (el) ejecutarAccion(el, ev); });
+document.addEventListener("keydown", ev => { if (ev.key !== "Enter") return;
+  const el = ev.target.closest("[data-accion]"); if (el && el.tagName !== "BUTTON" && el.tagName !== "A") ejecutarAccion(el, ev); });
+
+/* ---------------------------------------------------------------- vista sencilla (portada) */
+const INI = {horas: 168, act: null, actTs: 0};
+function leerModo() { try { return localStorage.getItem("panel-modo") !== "experto"; } catch (e) { return true; } }
+function ponerModo(sencillo) {
+  document.body.classList.toggle("sencillo", sencillo);
+  try { localStorage.setItem("panel-modo", sencillo ? "sencillo" : "experto"); } catch (e) { /* sin almacenamiento */ }
+  $("b-modo").textContent = sencillo ? "Modo experto" : "Vista sencilla";
+  $("b-modo").title = sencillo ? "Ver todas las pestañas con el detalle técnico" : "Volver a la portada sencilla";
+  if (!sencillo) irA(location.hash.slice(1) || "resumen"); else { pintarInicio(); cargarActividad(); }
+  scrollTo({top: 0});
+}
+const moneda$ = v => v == null || isNaN(v) ? "—" : (v > 0 ? "+" : v < 0 ? "−" : "") + n(Math.abs(v), 2) + " $";
+function haceTxt(ts) { return ts ? "hace " + hace(Date.now() / 1000 - ts) : ""; }
+function nombreLado(lado, m) { return lado === "L" ? `Apuesta a que ${m} sube` : `Apuesta a que ${m} baja`; }
+function simplificaBloqueo(t) {
+  t = String(t || "");
+  if (/pausa manual/.test(t)) return "lo has pausado tú";
+  if (/obsolet|no disponibles|no es reciente/.test(t)) return "está esperando datos de mercado frescos";
+  if (/pérdida|perdida|caída|drawdown/i.test(t)) return "ha llegado a un límite de pérdidas y se protege";
+  if (/conciliaci/.test(t)) return "está comprobando que la cuenta cuadra";
+  if (/máximo de operaciones|operaciones hoy/i.test(t)) return "ya ha hecho todas las operaciones permitidas hoy";
+  return t.length > 90 ? t.slice(0, 90) + "…" : t;
+}
+function serieRango() {
+  const h = (D && D.bot && D.bot.historial_saldo) || [];
+  if (!INI.horas) return h;
+  const desde = Date.now() / 1000 - INI.horas * 3600;
+  const s = h.filter(p => p[0] >= desde);
+  return s.length >= 2 ? s : h.slice(-2);
+}
+function pintarGraficoInicio(serie, sube) {
+  const g = $("in-graf");
+  if (serie.length < 2) { g.innerHTML = '<div class="in-vacio" style="text-align:center;padding-top:60px">Aún no hay historial suficiente</div>'; return; }
+  const W = 560, H = 150, t0 = serie[0][0], t1 = serie[serie.length - 1][0];
+  let lo = Math.min(...serie.map(p => p[1])), hi = Math.max(...serie.map(p => p[1]));
+  const minimo = Math.max(0.5, hi * 0.01);            // movimientos de céntimos no deben parecer un desplome
+  if (hi - lo < minimo) { const c = (hi + lo) / 2; lo = c - minimo / 2; hi = c + minimo / 2; }
+  const X = t => (t - t0) / Math.max(1, t1 - t0) * W, Y = v => 8 + (hi - v) / (hi - lo) * (H - 16);
+  const pts = serie.map(p => `${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`);
+  const col = sube ? "var(--verde)" : "var(--rojo)";
+  g.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Evolución del valor de la cuenta">
+    <defs><linearGradient id="in-grad" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${sube ? "#2fd788" : "#f0627d"}" stop-opacity=".28"/>
+    <stop offset="1" stop-color="${sube ? "#2fd788" : "#f0627d"}" stop-opacity="0"/></linearGradient></defs>
+    <path d="M0,${H} L${pts.join(" L")} L${W},${H} Z" fill="url(#in-grad)"/>
+    <polyline points="${pts.join(" ")}" fill="none" stroke="${col}" stroke-width="2.2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+    <line id="in-cursor" y1="0" y2="${H}" stroke="var(--borde-2)" stroke-width="1" vector-effect="non-scaling-stroke" style="display:none"/>
+  </svg>`;
+  const svg = g.querySelector("svg");
+  svg.onpointermove = ev => {
+    const r = svg.getBoundingClientRect(), t = t0 + (ev.clientX - r.left) / r.width * (t1 - t0);
+    let p = serie[0]; for (const q of serie) { if (Math.abs(q[0] - t) < Math.abs(p[0] - t)) p = q; }
+    const c = $("in-cursor"); c.style.display = ""; c.setAttribute("x1", X(p[0])); c.setAttribute("x2", X(p[0]));
+    $("in-etq").textContent = new Date(p[0] * 1000).toLocaleString("es-ES", {weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"});
+    pintarCifra(p[1]);
+  };
+  svg.onpointerleave = () => { $("in-cursor").style.display = "none"; $("in-etq").textContent = "Valor de la cuenta"; pintarCifra(D.bot.saldo); };
+}
+function pintarCifra(v) {
+  if (v == null) { $("in-cifra").textContent = "—"; return; }
+  const [e, d] = n(v, 2).split(",");
+  $("in-cifra").innerHTML = `${esc(e)}<small>,${esc(d)} $</small>`;
+}
+function pintarInicio() {
+  if (!D || !document.body.classList.contains("sencillo")) return;
+  const b = D.bot || {}, modo = b.modo;
+  pintarCifra(b.saldo);
+  const serie = serieRango(), ref = serie.length ? serie[0][1] : null;
+  const cambio = b.saldo != null && ref ? b.saldo - ref : null;
+  const etqR = {24: "hoy", 168: "esta semana", 720: "este mes", 0: "desde el inicio"}[INI.horas];
+  const ch = $("in-cambio");
+  ch.className = "in-cambio " + (cambio > 0.005 ? "pos" : cambio < -0.005 ? "neg" : "");
+  ch.innerHTML = cambio == null ? "—" : `${cambio >= 0 ? "▲" : "▼"} ${moneda$(cambio)} · ${pct(cambio / ref * 100)} <span class="suave">${etqR}</span>`;
+  $("in-ficticio").textContent = modo === "real" ? "Dinero real" : modo === "shadow" ? "Modo observación: no se envía ninguna orden"
+    : "Dinero ficticio · precios reales del mercado";
+  pintarGraficoInicio(serie, cambio == null || cambio >= 0);
+  const pausado = (b.bloqueos || []).some(x => /pausa manual/.test(x));
+  $("in-pausa").style.display = pausado ? "none" : ""; $("in-reanudar").style.display = pausado ? "" : "none";
+  $("in-pausa").disabled = $("in-reanudar").disabled = SOLO_LECTURA;
+  $("in-cerrar").disabled = SOLO_LECTURA || modo === "shadow" || !(b.posiciones || []).length;
+
+  // ¿Qué está haciendo el bot?
+  const nMon = ((b.motor || {}).monedas || []).length, cb = b.cerebro || {};
+  const ops = b.ops_hoy || 0;
+  let luz = "verde", frase;
+  if (!b.ts) { luz = "ambar"; frase = "El bot aún no ha arrancado."; }
+  else if (!D.bot_vivo) { luz = "rojo"; frase = `El bot no responde desde hace ${hace(D.edad_datos_seg)}. <span class="suave">Comprueba que el ordenador está encendido y el bot abierto.</span>`; }
+  else if ((b.bloqueos || []).length) { luz = "ambar"; frase = `En marcha, pero ahora no abre operaciones nuevas: ${esc(simplificaBloqueo(b.bloqueos[0]))}.`
+      + ` <span class="suave">Las operaciones abiertas siguen protegidas.</span>`; }
+  else if (cb.decide && !Object.keys(cb.modelos || {}).length) { luz = "ambar";
+    frase = `Vigilando ${nMon} monedas. <span class="suave">No abrirá operaciones nuevas hasta que el laboratorio entrene al «cerebro» que decide.</span>`; }
+  else frase = `Vigilando ${nMon} monedas y buscando oportunidades. <span class="suave">Hoy ha abierto ${ops} ${ops === 1 ? "operación" : "operaciones"}.</span>`;
+  $("in-luz").className = "in-luz " + luz; $("in-frase").innerHTML = frase;
+
+  // Operaciones abiertas
+  const pos = (b.posiciones || []).map(p => ({...p, prueba: false}))
+    .concat((b.shadow_abiertas || []).map(p => ({...p, prueba: true})));
+  $("in-n-abiertas").textContent = pos.length ? `${pos.length}` : "";
+  $("in-abiertas").innerHTML = pos.length ? pos.map(p => {
+    const dist = p.sl && p.entrada ? Math.abs(p.entrada - p.sl) / p.entrada * 100 : null;
+    const obj = p.tpf && p.entrada ? Math.abs(p.tpf - p.entrada) / p.entrada * 100 : null;
+    const pnl = p.pnl_no_realizado;
+    return `<div class="in-fila"><span class="in-avatar ${p.lado === "L" ? "sube" : "baja"}">${esc(String(p.moneda).replace(/^k/, "").slice(0, 4))}</span>
+      <div class="in-medio"><b>${esc(nombreLado(p.lado, p.moneda))}${p.prueba ? " · prueba" : ""}</b>
+        <span class="suave">${p.riesgo_usd != null ? `Pérdida máxima ${n(p.riesgo_usd, 2)} $` : ""}${dist != null ? ` (si cae un ${n(dist, 1)} % se cierra sola)` : ""}${obj != null ? ` · objetivo +${n(obj, 1)} %` : ""}</span></div>
+      <div class="in-der ${pnl > 0 ? "pos" : pnl < 0 ? "neg" : ""}">${pnl != null ? moneda$(pnl) : "—"}<span class="suave">${esc(haceTxt(p.abierta_ts))}</span></div></div>`;
+  }).join("") : '<div class="in-vacio">Ahora mismo no hay ninguna operación abierta.</div>';
+
+  // Camino a dinero real
+  const ests = b.estrategias || [];
+  const mejor = ests.slice().sort((x, y) => ((y.progreso || {}).requisitos_apta || {}).cumplidos - ((x.progreso || {}).requisitos_apta || {}).cumplidos)[0] || {};
+  const pr = mejor.progreso || {}, falt = ((pr.requisitos_apta || {}).faltan) || ["sin datos"];
+  const nPrueba = Math.max(...ests.map(e => ((e.progreso || {}).shadow || {}).n + ((e.progreso || {}).paper || {}).n || 0), 0);
+  const cerebroOk = Object.values(cb.modelos || {}).some(m => m.estado_laboratorio === "supera");
+  const pasos = [
+    [ests.some(e => e.laboratorio_superado) || cerebroOk, "Una estrategia o el cerebro supera el laboratorio", "pruebas con años de datos históricos"],
+    [nPrueba >= 30, `30 operaciones de prueba`, `${Math.min(nPrueba, 30)} de 30 hechas`],
+    [!falt.some(f => /días de observación/.test(f)), "14 días de observación en vivo", ""],
+    [!falt.some(f => /R neto medio|resultado neto/.test(f)), "Resultado de las pruebas positivo", "tras comisiones"],
+    [ests.some(e => e.etapa === "real_habilitado"), "Tu aprobación final", "nada pasa a real sin ti"],
+  ];
+  const hechos = pasos.filter(p => p[0]).length;
+  $("in-camino-n").textContent = `${hechos} de ${pasos.length}`;
+  $("in-camino-barra").style.width = (hechos / pasos.length * 100) + "%";
+  $("in-camino").innerHTML = pasos.map(([ok, t, s]) => `<li class="${ok ? "ok" : ""}"><span class="ck">${ok ? "✓" : ""}</span>
+    <span>${esc(t)}${s ? ` <span class="tenue">· ${esc(s)}</span>` : ""}</span></li>`).join("");
+}
+async function cargarActividad() {
+  if (!document.body.classList.contains("sencillo")) return;
+  let r; try { r = await (await fetch("/api/operaciones?solo_ejecutadas=1&por_pagina=6", {cache: "no-store"})).json(); }
+  catch (e) { $("in-actividad").innerHTML = '<div class="in-vacio">No se pudo leer la actividad.</div>'; return; }
+  const filas = r.filas || [], res = r.resumen || {};
+  $("in-resumen-act").textContent = res.cerradas ? `${res.cerradas} cerradas · ${n(res.ganadoras_pct, 0)} % ganadoras` : "";
+  $("in-actividad").innerHTML = filas.length ? filas.map(o => {
+    const cerrada = o.estado === "cerrada", ts = cerrada ? o.cerrada_ts : o.abierta_ts, v = cerrada ? o.pnl_neto : null;
+    return `<div class="in-fila"><span class="in-avatar ${o.lado === "L" ? "sube" : "baja"}">${esc(String(o.moneda).replace(/^k/, "").slice(0, 4))}</span>
+      <div class="in-medio"><b>${cerrada ? "Cerrada" : "Abierta"} · ${esc(nombreLado(o.lado, o.moneda).replace("Apuesta", "apuesta"))}</b>
+        <span class="suave">${esc(haceTxt(ts))}${cerrada && o.causa_salida ? " · " + esc(o.causa_salida) : ""}</span></div>
+      <div class="in-der ${v > 0 ? "pos" : v < 0 ? "neg" : ""}">${v != null ? moneda$(v) : '<span class="suave">en curso</span>'}</div></div>`;
+  }).join("") : '<div class="in-vacio">Todavía no hay operaciones.</div>';
+}
+document.addEventListener("click", ev => {
+  const bt = ev.target.closest("#in-rangos button"); if (!bt) return;
+  INI.horas = +bt.dataset.h;
+  document.querySelectorAll("#in-rangos button").forEach(x => x.classList.toggle("activo", x === bt));
+  pintarInicio();
+});
+
+/* ---------------------------------------------------------------- arranque */
+(async () => {
+  const dlm = document.createElement("datalist"); dlm.id = "lista-mercados"; document.body.appendChild(dlm);
+  try {
+    GLOSARIO = await (await fetch("/api/glosario")).json();
+    $("glosario").innerHTML = Object.values(GLOSARIO).map(g => `<dt>${esc(g.titulo)}</dt><dd>${esc(g.texto)}</dd>`).join("");
+  } catch (e) { /* sin glosario */ }
+  irA(location.hash.slice(1) || "resumen");
+  ponerModo(leerModo());
+  await cargar();
+  reiniciarVivo(); cargarResumenFeed(); cargarLab();
+  setInterval(() => { cargar(); estadoConexion(); }, 10000);
+  setInterval(cargarResumenFeed, 15000);
+  setInterval(cargarActividad, 30000);
+  setInterval(() => { if (location.hash === "#observabilidad") cargarObs(); }, 10000);
+})();
+</script>
+</body>
+</html>

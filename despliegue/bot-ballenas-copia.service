@@ -1,0 +1,13 @@
+[Unit]
+Description=Copia de seguridad diaria de los datos del bot a Cloudflare R2
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=botballenas
+WorkingDirectory=/opt/bot-ballenas
+ExecStart=/bin/bash /opt/bot-ballenas/despliegue/copia_seguridad.sh
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true

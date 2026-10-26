@@ -1,0 +1,26 @@
+[Unit]
+Description=Bot de trading para Hyperliquid (simulado/shadow/real)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=botballenas
+WorkingDirectory=/opt/bot-ballenas
+# Valida (y migra con copia de seguridad) la configuración antes de arrancar; si falla, no arranca.
+ExecStartPre=/opt/bot-ballenas/.venv/bin/python bot.py --validar-config
+ExecStart=/opt/bot-ballenas/.venv/bin/python -u bot.py
+# Apagado ordenado: SIGTERM -> deja de abrir, guarda estado y CONSERVA stops en el exchange.
+KillSignal=SIGTERM
+TimeoutStopSec=60
+Restart=always
+RestartSec=30
+# Si se apaga por pérdida máxima total o config mala (código 3), no lo reinicies en bucle.
+RestartPreventExitStatus=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+MemoryMax=1200M
+
+[Install]
+WantedBy=multi-user.target

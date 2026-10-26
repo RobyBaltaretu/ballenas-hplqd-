@@ -1,0 +1,17 @@
+[Unit]
+Description=Laboratorio semanal del bot (solo evidencia; avisa por Telegram si algo cambia)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=botballenas
+WorkingDirectory=/opt/bot-ballenas
+ExecStart=/opt/bot-ballenas/.venv/bin/python -u laboratorio_semanal.py
+# Que nunca le quite recursos al bot
+Nice=15
+CPUQuota=80%
+MemoryMax=1500M
+TimeoutStartSec=6h
+NoNewPrivileges=true
+PrivateTmp=true
